@@ -2,6 +2,31 @@ import mongoose from "mongoose";
 
 const Schema = mongoose.Schema;
 
+// Define the session schema
+const sessionSchema = new Schema({
+  sessionID: {
+    type: String,
+    required: true,
+  },
+  loginAt: {
+    type: Date,
+    default: Date.now,
+  },
+  expiresAt: {
+    type: Date,
+    required: true,
+  },
+  ipAddress: String,
+  userAgent: String,
+  latitude: {
+    type: Number,
+  },
+  longitude: {
+    type: Number,
+  },
+});
+
+// Define the user schema
 const userSchema = new Schema({
   username: {
     type: String,
@@ -33,6 +58,8 @@ const userSchema = new Schema({
   },
   email: {
     type: String,
+    required: true, // Consider making this required
+    unique: true, // Ensure email is unique
   },
   employment_type: { type: String },
   skill: {
@@ -185,7 +212,15 @@ const userSchema = new Schema({
   kyc_approval: {
     type: String,
   },
+  resetPasswordOTP: {
+    type: String, // Field to store the OTP for password reset
+  },
+  resetPasswordExpires: {
+    type: Date, // Field to store OTP expiration time
+  },
+  sessions: [sessionSchema],
 });
 
+// Create and export the User model
 const UserModel = mongoose.model("User", userSchema);
 export default UserModel;

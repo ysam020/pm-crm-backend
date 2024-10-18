@@ -6,13 +6,17 @@ import compression from "compression";
 import cluster from "cluster";
 import os from "os";
 import bodyParser from "body-parser";
+import cookieParser from "cookie-parser";
 dotenv.config();
 
 // Import routes
-import getAllUsers from "./routes/getAllUsers.mjs";
-import getUser from "./routes/getUser.mjs";
+import verifyUser from "./routes/verifyUser.mjs";
+import getUserProfile from "./routes/getUserProfile.mjs";
 import getUserData from "./routes/getUserData.mjs";
 import login from "./routes/login.mjs";
+import logout from "./routes/logout.mjs";
+import forgotPassword from "./routes/forgotPassword.mjs";
+import updatePassword from "./routes/updatePassword.mjs";
 
 // Employee KYC
 import completeKyc from "./routes/employee-kyc/completeKyc.mjs";
@@ -52,7 +56,13 @@ if (cluster.isPrimary) {
   app.use(bodyParser.json({ limit: "100mb" }));
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
-  app.use(cors());
+  app.use(cookieParser());
+  app.use(
+    cors({
+      origin: ["http://localhost:3000", "http://127.0.0.1:3000"],
+      credentials: true,
+    })
+  );
   app.use(compression({ level: 9 }));
 
   mongoose.set("strictQuery", true);
@@ -73,10 +83,13 @@ if (cluster.isPrimary) {
         }
       });
 
-      app.use(getAllUsers);
-      app.use(getUser);
+      app.use(verifyUser);
+      app.use(getUserProfile);
       app.use(getUserData);
       app.use(login);
+      app.use(logout);
+      app.use(forgotPassword);
+      app.use(updatePassword);
 
       // Employee KYC
       app.use(completeKyc);

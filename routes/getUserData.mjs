@@ -1,13 +1,15 @@
 import express from "express";
 import UserModel from "../model/userModel.mjs";
+import verifySession from "../middlewares/verifySession.mjs";
 
 const router = express.Router();
 
-router.get("/api/get-user-data/:username", async (req, res) => {
+router.get("/api/get-user-data/:username", verifySession, async (req, res) => {
   const { username } = req.params;
 
   try {
-    const user = await UserModel.findOne({ username });
+    // Exclude the password field using .select("-password")
+    const user = await UserModel.findOne({ username }).select("-password");
 
     if (!user) {
       return res.status(200).json({ message: "User not found" });

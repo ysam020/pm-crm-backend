@@ -1,6 +1,7 @@
 import express from "express";
 import bcrypt from "bcrypt";
 import UserModel from "../../model/userModel.mjs";
+import verifySession from "../../middlewares/verifySession.mjs";
 import dotenv from "dotenv";
 dotenv.config();
 
@@ -11,7 +12,7 @@ const CLIENT_URI =
     ? process.env.PROD_CLIENT_URI
     : process.env.DEV_CLIENT_URI;
 
-router.post("/api/onboard-employee", async (req, res) => {
+router.post("/api/onboard-employee", verifySession, async (req, res) => {
   const {
     first_name,
     middle_name,

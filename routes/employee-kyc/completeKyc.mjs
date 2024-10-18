@@ -1,9 +1,10 @@
 import express from "express";
 import UserModel from "../../model/userModel.mjs";
+import verifySession from "../../middlewares/verifySession.mjs";
 
 const router = express.Router();
 
-router.post("/api/complete-kyc", async (req, res) => {
+router.post("/api/complete-kyc", verifySession, async (req, res) => {
   try {
     const { username } = req.body;
 
