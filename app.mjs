@@ -73,6 +73,7 @@ if (cluster.isPrimary) {
         "http://127.0.0.1:3001",
         "http://paymaster-crm.s3-website.ap-south-1.amazonaws.com",
         "https://main.dp5y0oxsnhhdp.amplifyapp.com",
+        "https://sameer-yadav.site",
       ],
       methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
       allowedHeaders: ["Content-Type", "Authorization"],

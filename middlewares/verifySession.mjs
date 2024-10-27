@@ -42,8 +42,8 @@ const verifySession = async (req, res, next) => {
       // Clear the cookie if the session does not exist (invalid or expired)
       res.clearCookie("token", {
         httpOnly: true,
-        secure: true,
-        sameSite: "None",
+        secure: process.env.NODE_ENV === "production" ? true : false,
+        sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax",
       });
       return res
         .status(200)
@@ -58,8 +58,8 @@ const verifySession = async (req, res, next) => {
     // Clear the cookie if the token is invalid
     res.clearCookie("token", {
       httpOnly: true,
-      secure: true,
-      sameSite: "None",
+      secure: process.env.NODE_ENV === "production" ? true : false,
+      sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax",
     });
 
     return res.status(200).json({ message: "Forbidden: Invalid token" });

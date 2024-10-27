@@ -155,9 +155,9 @@ router.post("/api/login", async (req, res) => {
     // Send the token in an HTTP-only cookie
     res.cookie("token", jwtToken, {
       httpOnly: true,
-      secure: true,
+      secure: process.env.NODE_ENV === "production" ? true : false,
       maxAge: 60 * 60 * 1000, // 1 hour expiration
-      sameSite: "None",
+      sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax",
     });
 
     res.status(200).json({
