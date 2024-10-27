@@ -36,7 +36,7 @@ router.get("/api/logout", async (req, res) => {
     // Clear the cookie
     res.clearCookie("token", {
       httpOnly: true,
-      secure: false, // Set to true in production if using HTTPS
+      secure: true,
       sameSite: "None",
       path: "/",
     });

@@ -155,7 +155,7 @@ router.post("/api/login", async (req, res) => {
     // Send the token in an HTTP-only cookie
     res.cookie("token", jwtToken, {
       httpOnly: true,
-      secure: false,
+      secure: true,
       maxAge: 60 * 60 * 1000, // 1 hour expiration
       sameSite: "None",
     });

@@ -42,7 +42,7 @@ const verifySession = async (req, res, next) => {
       // Clear the cookie if the session does not exist (invalid or expired)
       res.clearCookie("token", {
         httpOnly: true,
-        secure: false,
+        secure: true,
         sameSite: "None",
       });
       return res
@@ -58,7 +58,7 @@ const verifySession = async (req, res, next) => {
     // Clear the cookie if the token is invalid
     res.clearCookie("token", {
       httpOnly: true,
-      secure: false, // Set this to true in production if using HTTPS
+      secure: true,
       sameSite: "None",
     });
 
