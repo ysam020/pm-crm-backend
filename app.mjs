@@ -97,7 +97,7 @@ if (cluster.isPrimary) {
     .then(async () => {
       app.get("/", async (req, res) => {
         try {
-          res.send("Server is up and running!");
+          res.send("Server is running on port 9002!");
         } catch (error) {
           res.status(500).send("An error occurred while updating the jobs");
         }

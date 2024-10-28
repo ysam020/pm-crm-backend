@@ -32,6 +32,7 @@ const verifySession = async (req, res, next) => {
 
     // Clean up expired sessions
     user.sessions = user.sessions.filter((session) => session.expiresAt > now);
+    await user.save();
 
     // Check if the session exists in the user's sessions after cleanup
     const sessionExists = user.sessions.some(
