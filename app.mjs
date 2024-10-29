@@ -25,6 +25,15 @@ import twoFactorAuth from "./routes/twoFactorAuth.mjs";
 import resetBlockedAccounts from "./routes/resetBlockedAccounts.mjs";
 import requestNewBackupCodes from "./routes/requestNewBackupCodes.mjs";
 import deleteBackupCodes from "./routes/deleteBackupCodes.mjs";
+// import webAuthn from "./routes/webAuthn.mjs";
+
+// WebAuthn
+import initiateRegistration from "./routes/webAuthn/initiateRegistration.mjs";
+import verifyRegistration from "./routes/webAuthn/verifyRegistration.mjs";
+import initiateLogin from "./routes/webAuthn/initiateLogin.mjs";
+import verifyLogin from "./routes/webAuthn/verifyLogin.mjs";
+import checkWebAuthn from "./routes/webAuthn/checkWebAuthn.mjs";
+import webAuthnLogin from "./routes/webAuthn/webAuthnLogin.mjs";
 
 // Employee KYC
 import completeKyc from "./routes/employee-kyc/completeKyc.mjs";
@@ -117,6 +126,15 @@ if (cluster.isPrimary) {
       app.use(resetBlockedAccounts);
       app.use(requestNewBackupCodes);
       app.use(deleteBackupCodes);
+      // app.use(webAuthn);
+
+      // WebAuthn
+      app.use(initiateRegistration);
+      app.use(verifyRegistration);
+      app.use(initiateLogin);
+      app.use(verifyLogin);
+      app.use(checkWebAuthn);
+      app.use(webAuthnLogin);
 
       // Employee KYC
       app.use(completeKyc);

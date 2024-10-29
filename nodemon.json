@@ -2,7 +2,15 @@
   "env": {
     "NODE_ENV": "development"
   },
-  "watch": ["app.mjs", "routes", "model", "middlewares", ".env", "logger.js"],
+  "watch": [
+    "app.mjs",
+    "routes",
+    "model",
+    "middlewares",
+    "utils",
+    ".env",
+    "logger.js"
+  ],
   "ext": "js,json,mjs",
   "exec": "node app.mjs"
 }
