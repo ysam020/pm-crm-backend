@@ -13,8 +13,6 @@
     "lint": "eslint ."
   },
   "dependencies": {
-    "@simplewebauthn/server": "^11.0.0",
-    "@simplewebauthn/typescript-types": "^8.3.4",
     "aws-sdk": "^2.1691.0",
     "axios": "^1.7.7",
     "base64url": "^3.0.1",
