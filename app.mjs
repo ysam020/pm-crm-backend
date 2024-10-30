@@ -21,10 +21,20 @@ import updatePassword from "./routes/updatePassword.mjs";
 import getSessionData from "./routes/getSessionData.mjs";
 import logoutFromAllSessions from "./routes/logoutFromAllSessions.mjs";
 import resetPassword from "./routes/resetPassword.mjs";
-import twoFactorAuth from "./routes/twoFactorAuth.mjs";
 import resetBlockedAccounts from "./routes/resetBlockedAccounts.mjs";
 import requestNewBackupCodes from "./routes/requestNewBackupCodes.mjs";
 import deleteBackupCodes from "./routes/deleteBackupCodes.mjs";
+import enableTwoFactor from "./routes/enableTwoFactor.mjs";
+import disableTwoFactor from "./routes/disableTwoFactor.mjs";
+
+// WebAuthn
+import credentialCheck from "./routes/webAuthn/credentialCheck.mjs";
+import initiateRegistration from "./routes/webAuthn/initiateRegistration.mjs";
+import verifyRegistration from "./routes/webAuthn/verifyRegistration.mjs";
+import initiateLogin from "./routes/webAuthn/initiateLogin.mjs";
+import verifyLogin from "./routes/webAuthn/verifyLogin.mjs";
+import webAuthnLogin from "./routes/webAuthn/webAuthnLogin.mjs";
+import disableWebAuthn from "./routes/webAuthn/disableWebAuthn.mjs";
 
 // Employee KYC
 import completeKyc from "./routes/employee-kyc/completeKyc.mjs";
@@ -113,10 +123,20 @@ if (cluster.isPrimary) {
       app.use(getSessionData);
       app.use(logoutFromAllSessions);
       app.use(resetPassword);
-      app.use(twoFactorAuth);
       app.use(resetBlockedAccounts);
       app.use(requestNewBackupCodes);
       app.use(deleteBackupCodes);
+      app.use(enableTwoFactor);
+      app.use(disableTwoFactor);
+
+      // WebAuthn
+      app.use(credentialCheck);
+      app.use(initiateRegistration);
+      app.use(verifyRegistration);
+      app.use(initiateLogin);
+      app.use(verifyLogin);
+      app.use(webAuthnLogin);
+      app.use(disableWebAuthn);
 
       // Employee KYC
       app.use(completeKyc);

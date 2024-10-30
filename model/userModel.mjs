@@ -24,6 +24,18 @@ const sessionSchema = new Schema({
   },
 });
 
+// Credential schema
+const CredentialSchema = new mongoose.Schema({
+  credentialID: String,
+  publicKey: String,
+  counter: Number,
+  transports: [String],
+  device: {
+    type: String,
+    default: "Unknown Device",
+  },
+});
+
 // User schema
 const userSchema = new Schema(
   {
@@ -175,6 +187,10 @@ const userSchema = new Schema(
     twoFactorSecret: {
       type: String,
     },
+    qrCodeImage: { type: String },
+    isTwoFactorEnabled: {
+      type: Boolean,
+    },
     // Rate-limiting fields for login attempts
     failedLoginAttempts: { type: Number, default: 0 },
     firstFailedLoginAt: { type: Date },
@@ -183,6 +199,9 @@ const userSchema = new Schema(
     backupCodes: {
       type: [String], // Array to store backup codes
     },
+    // WebAuthn
+    webAuthnCredentials: [CredentialSchema],
+    isWebAuthnEnabled: { type: Boolean, default: false },
   },
   { optimisticConcurrency: true }
 );
