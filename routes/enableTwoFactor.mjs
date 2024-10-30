@@ -2,16 +2,17 @@ import express from "express";
 import speakeasy from "speakeasy";
 import QRCode from "qrcode";
 import UserModel from "../model/userModel.mjs";
+import verifySession from "../middlewares/verifySession.mjs";
 
 const router = express.Router();
 
-router.post("/api/enable-two-factor", async (req, res) => {
+router.post("/api/enable-two-factor", verifySession, async (req, res) => {
   const { username } = req.body;
 
   try {
     const user = await UserModel.findOne({ username });
     if (!user) {
-      return res.status(404).json({ message: "User not found" });
+      return res.status(200).json({ message: "User not found" });
     }
 
     // Generate a new secret for 2FA

@@ -2,10 +2,11 @@ import express from "express";
 import bcrypt from "bcrypt";
 import UserModel from "../model/userModel.mjs";
 import jwt from "jsonwebtoken";
+import verifySession from "../middlewares/verifySession.mjs";
 
 const router = express.Router();
 
-router.post("/api/reset-password", async (req, res) => {
+router.post("/api/reset-password", verifySession, async (req, res) => {
   const { password, new_password } = req.body;
   const token = req.cookies.token;
 

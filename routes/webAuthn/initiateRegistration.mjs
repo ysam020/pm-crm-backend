@@ -1,10 +1,11 @@
 import express from "express";
 import { generateAttestationOptions } from "../../utils/generateAttestationOptions.mjs";
 import UserModel from "../../model/userModel.mjs";
+import verifySession from "../../middlewares/verifySession.mjs";
 
 const router = express.Router();
 
-router.post("/api/webauthn/register", async (req, res) => {
+router.post("/api/webauthn/register", verifySession, async (req, res) => {
   const { username } = req.body;
 
   try {
