@@ -38,7 +38,6 @@ router.get("/api/logout", async (req, res) => {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production" ? true : false,
       sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax",
-      path: "/",
     });
 
     return res.status(200).json({ message: "Logged out successfully" });
