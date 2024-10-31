@@ -9,7 +9,7 @@ router.post("/api/disable-webauthn", verifySession, async (req, res) => {
   try {
     const user = await UserModel.findOne({ username });
     if (!user) {
-      return res.status(200).json({ error: "User not found" });
+      return res.status(200).json({ message: "User not found" });
     }
     user.webAuthnCredentials = [];
     user.isWebAuthnEnabled = false;
