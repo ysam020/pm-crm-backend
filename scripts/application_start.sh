@@ -18,7 +18,17 @@ export EMAIL_FROM=$(aws ssm get-parameter --name "EMAIL_FROM" --query "Parameter
 export OPENCAGE_API_KEY=$(aws ssm get-parameter --name "OPENCAGE_API_KEY" --query "Parameter.Value" --output text)
 export DEV_MONGODB_URI=$(aws ssm get-parameter --name "DEV_MONGODB_URI" --query "Parameter.Value" --output text)
 export PROD_MONGODB_URI=$(aws ssm get-parameter --name "PROD_MONGODB_URI" --query "Parameter.Value" --output text)
-
+export TYPE=$(aws ssm get-parameter --name "TYPE" --query "Parameter.Value" --output text)
+export PROJECT_ID=$(aws ssm get-parameter --name "PROJECT_ID" --query "Parameter.Value" --output text)
+export PRIVATE_KEY_ID=$(aws ssm get-parameter --name "PRIVATE_KEY_ID" --query "Parameter.Value" --output text)
+export PRIVATE_KEY=$(aws ssm get-parameter --name "PRIVATE_KEY" --query "Parameter.Value" --output text)
+export CLIENT_EMAIL=$(aws ssm get-parameter --name "CLIENT_EMAIL" --query "Parameter.Value" --output text)
+export CLIENT_ID=$(aws ssm get-parameter --name "CLIENT_ID" --query "Parameter.Value" --output text)
+export AUTH_URI=$(aws ssm get-parameter --name "AUTH_URI" --query "Parameter.Value" --output text)
+export TOKEN_URI=$(aws ssm get-parameter --name "TOKEN_URI" --query "Parameter.Value" --output text)
+export AUTH_PROVIDER_CERT_URI=$(aws ssm get-parameter --name "AUTH_PROVIDER_CERT_URI" --query "Parameter.Value" --output text)
+export CLIENT_CERT_URL=$(aws ssm get-parameter --name "CLIENT_CERT_URL" --query "Parameter.Value" --output text)
+export UNIVERSE_DOMAIN=$(aws ssm get-parameter --name "UNIVERSE_DOMAIN" --query "Parameter.Value" --output text)
 
 # Install node modules
 npm install

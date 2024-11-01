@@ -36,6 +36,10 @@ import verifyLogin from "./routes/webAuthn/verifyLogin.mjs";
 import webAuthnLogin from "./routes/webAuthn/webAuthnLogin.mjs";
 import disableWebAuthn from "./routes/webAuthn/disableWebAuthn.mjs";
 
+// FCM
+import saveFcmToken from "./routes/push-notifications/saveFcmToken.mjs";
+import sendNotification from "./routes/push-notifications/sendNotification.mjs";
+
 // Employee KYC
 import completeKyc from "./routes/employee-kyc/completeKyc.mjs";
 import kycApproval from "./routes/employee-kyc/kycApproval.mjs";
@@ -137,6 +141,10 @@ if (cluster.isPrimary) {
       app.use(verifyLogin);
       app.use(webAuthnLogin);
       app.use(disableWebAuthn);
+
+      // FCM
+      app.use(saveFcmToken);
+      app.use(sendNotification);
 
       // Employee KYC
       app.use(completeKyc);
