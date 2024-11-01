@@ -1,10 +1,11 @@
 import express from "express";
 import UserModel from "../../model/userModel.mjs";
 import admin from "../../utils/firebaseAdmin.mjs";
+import verifySession from "../../middlewares/verifySession.mjs";
 
 const router = express.Router();
 
-router.post("/api/send-notification", async (req, res) => {
+router.post("/api/send-notification", verifySession, async (req, res) => {
   const { username, message } = req.body;
 
   try {
@@ -24,6 +25,11 @@ router.post("/api/send-notification", async (req, res) => {
       notification: {
         title: `Notification from ${username}`,
         body: message,
+        image:
+          "https://paymaster-document.s3.ap-south-1.amazonaws.com/favicon.png",
+      },
+      data: {
+        LinkUrl: "http://localhost:3000",
       },
     };
 

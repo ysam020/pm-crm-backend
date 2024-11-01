@@ -39,6 +39,7 @@ import disableWebAuthn from "./routes/webAuthn/disableWebAuthn.mjs";
 // FCM
 import saveFcmToken from "./routes/push-notifications/saveFcmToken.mjs";
 import sendNotification from "./routes/push-notifications/sendNotification.mjs";
+import disablePushNotifications from "./routes/push-notifications/disablePushNotifications.mjs";
 
 // Employee KYC
 import completeKyc from "./routes/employee-kyc/completeKyc.mjs";
@@ -145,6 +146,7 @@ if (cluster.isPrimary) {
       // FCM
       app.use(saveFcmToken);
       app.use(sendNotification);
+      app.use(disablePushNotifications);
 
       // Employee KYC
       app.use(completeKyc);

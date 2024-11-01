@@ -19,7 +19,7 @@ router.post("/api/save-fcm-token", verifySession, async (req, res) => {
   }
 
   await user.save();
-  res.send({ message: "FCM token saved" });
+  res.send({ message: "Push notification enabled" });
 });
 
 export default router;

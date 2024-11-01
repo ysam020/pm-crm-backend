@@ -10,7 +10,7 @@ router.post("/api/webauthn/register", verifySession, async (req, res) => {
 
   try {
     const user = await UserModel.findOne({ username });
-    user.isWebAuthnEnabled = true;
+
     await user.save();
     const options = await generateAttestationOptions(username);
     res.json(options);
