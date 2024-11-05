@@ -52,6 +52,8 @@ import completeOnboarding from "./routes/employee-onboarding/completeOnboarding.
 import viewOnboardings from "./routes/employee-onboarding/viewOnboardings.mjs";
 
 // Home
+import getAllUsers from "./routes/home/getAllUsers.mjs";
+import getUserModules from "./routes/home/getUserModules.mjs";
 import assignModules from "./routes/home/assignModules.mjs";
 import assignRole from "./routes/home/assignRole.mjs";
 import unassignModule from "./routes/home/unassignModules.mjs";
@@ -159,6 +161,8 @@ if (cluster.isPrimary) {
       app.use(viewOnboardings);
 
       // Home
+      app.use(getAllUsers);
+      app.use(getUserModules);
       app.use(assignModules);
       app.use(assignRole);
       app.use(unassignModule);

@@ -7,16 +7,17 @@ import verifySession from "../middlewares/verifySession.mjs";
 const router = express.Router();
 
 router.post("/api/reset-password", verifySession, async (req, res) => {
-  const { password, new_password } = req.body;
-  const token = req.cookies.token;
-
-  if (!token) {
-    return res.status(200).json({ message: "Unauthorized: No token provided" });
-  }
-
-  const username = jwt.verify(token, process.env.JWT_SECRET).username;
-
   try {
+    const { password, new_password } = req.body;
+    const token = req.cookies.token;
+
+    if (!token) {
+      return res
+        .status(200)
+        .json({ message: "Unauthorized: No token provided" });
+    }
+
+    const username = jwt.verify(token, process.env.JWT_SECRET).username;
     // Find the user by username
     const user = await UserModel.findOne({ username });
     if (!user) {

@@ -7,13 +7,13 @@ import UserModel from "../model/userModel.mjs";
 const router = express.Router();
 
 router.get("/api/verify-user", verifySession, async (req, res) => {
-  const token = req.cookies.token;
-
-  if (!token) {
-    return res.status(200).json({ message: "Unauthorized" });
-  }
 
   try {
+    const token = req.cookies.token;
+
+    if (!token) {
+      return res.status(200).json({ message: "Unauthorized" });
+    }
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
     const user = await UserModel.findOne({ username: decoded.username }).select(
@@ -30,3 +30,4 @@ router.get("/api/verify-user", verifySession, async (req, res) => {
 });
 
 export default router;
+

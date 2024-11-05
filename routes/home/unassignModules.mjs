@@ -1,15 +1,49 @@
 import express from "express";
 import UserModel from "../../model/userModel.mjs";
+import admin from "../../utils/firebaseAdmin.mjs";
 
 const router = express.Router();
 
 router.post("/api/unassign-modules", async (req, res) => {
-  const { modules, username } = req.body;
+  try {
+    const { modules, username } = req.body;
+    // Verify that username and modules are provided
+    if (!username || !Array.isArray(modules) || modules.length === 0) {
+      return res.status(400).send({
+        message: "Invalid request: Username and modules are required.",
+      });
+    }
 
-  const user = await UserModel.findOne({ username });
-  user.modules = user.modules.filter((module) => !modules.includes(module));
-  user.save();
-  res.send("success");
+    // Find the user in MongoDB
+    const user = await UserModel.findOne({ username });
+
+    if (!user) {
+      return res.status(404).send({ message: "User not found." });
+    }
+
+    // Remove the modules from the user's list
+    user.modules = user.modules.filter((module) => !modules.includes(module));
+    await user.save();
+
+    // Reference to the user's document in Firestore
+    const userRef = admin.firestore().collection("modules").doc(username);
+
+    // Unassign modules by deleting documents from the Firestore subcollection
+    await Promise.all(
+      modules.map(async (moduleName) => {
+        const moduleRef = userRef.collection("moduleName").doc(moduleName);
+        // Use the Admin SDK to delete the document
+        await moduleRef.delete().catch((error) => {
+          console.error(`Error deleting module ${moduleName}:`, error);
+        });
+      })
+    );
+
+    res.send({ message: "Modules unassigned successfully." });
+  } catch (error) {
+    console.error("Error unassigning modules:", error);
+    res.status(500).send("Internal Server Error");
+  }
 });
 
 export default router;

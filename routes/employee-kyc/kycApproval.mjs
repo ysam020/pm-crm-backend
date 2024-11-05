@@ -5,9 +5,8 @@ import verifySession from "../../middlewares/verifySession.mjs";
 const router = express.Router();
 
 router.post("/api/kyc-approval", verifySession, async (req, res) => {
-  const { username, kyc_approval } = req.body;
-
   try {
+    const { username, kyc_approval } = req.body;
     // Find the user by username
     const user = await UserModel.findOne({ username });
 

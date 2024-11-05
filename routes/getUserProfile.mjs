@@ -7,10 +7,11 @@ import jwt from "jsonwebtoken";
 const router = express.Router();
 
 router.get("/api/get-user-profile", verifySession, async (req, res) => {
-  const token = req.cookies.token;
-  const decoded = jwt.verify(token, process.env.JWT_SECRET);
-  const username = decoded.username;
   try {
+    const token = req.cookies.token;
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const username = decoded.username;
+
     // Find the user by their username and select necessary fields
     const user = await UserModel.findOne({ username }).select(
       "username modules employee_photo"

@@ -5,9 +5,8 @@ import verifySession from "../middlewares/verifySession.mjs";
 const router = express.Router();
 
 router.get("/api/get-user-data/:username", verifySession, async (req, res) => {
-  const { username } = req.params;
-
   try {
+    const { username } = req.params;
     // Exclude the password field
     const user = await UserModel.findOne({ username }).select("-password");
 

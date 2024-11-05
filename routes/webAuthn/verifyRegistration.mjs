@@ -8,9 +8,8 @@ router.post(
   "/api/webauthn/verify-registration",
   verifySession,
   async (req, res) => {
-    const { username, credential } = req.body;
-
     try {
+      const { username, credential } = req.body;
       const data = await verifyAttestationResponse(username, credential);
       res.json(data);
     } catch (error) {

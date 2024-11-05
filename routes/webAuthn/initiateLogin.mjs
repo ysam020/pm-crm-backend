@@ -4,9 +4,8 @@ import { generateAssertionOptions } from "../../utils/generateAssertionOptions.m
 const router = express.Router();
 
 router.post("/api/webauthn/login", async (req, res) => {
-  const { username } = req.body;
-
   try {
+    const { username } = req.body;
     // Generate assertion options for WebAuthn login
     const options = await generateAssertionOptions(username);
 

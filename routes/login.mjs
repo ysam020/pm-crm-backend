@@ -21,18 +21,17 @@ let transporter = nodemailer.createTransport({
 const router = express.Router();
 
 router.post("/api/login", async (req, res) => {
-  const {
-    username,
-    password,
-    twoFAToken,
-    backupCode,
-    userAgent,
-    geolocation,
-    isTwoFactorEnabled,
-    useBackupCode,
-  } = req.body;
-
   try {
+    const {
+      username,
+      password,
+      twoFAToken,
+      backupCode,
+      userAgent,
+      geolocation,
+      isTwoFactorEnabled,
+      useBackupCode,
+    } = req.body;
     const user = await UserModel.findOne({ username });
     if (!user) {
       return res.status(200).json({ message: "User not registered" });

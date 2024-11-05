@@ -13,12 +13,12 @@ const CLIENT_URI =
     : process.env.DEV_CLIENT_URI;
 
 router.post("/api/onboard-employee", verifySession, async (req, res) => {
-  const { first_name, middle_name, last_name, email, employment_type } =
-    req.body;
-  const username = `${first_name.toLowerCase()}_${last_name.toLowerCase()}`;
-  const password = "1234";
-
   try {
+    const { first_name, middle_name, last_name, email, employment_type } =
+      req.body;
+    const username = `${first_name.toLowerCase()}_${last_name.toLowerCase()}`;
+    const password = "1234";
+
     // Check if there exists an employee with same username
     const existingEmployee = await UserModel.findOne({ username });
 

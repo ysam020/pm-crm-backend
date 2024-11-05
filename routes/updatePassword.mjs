@@ -5,9 +5,9 @@ import User from "../model/userModel.mjs";
 const router = express.Router();
 
 router.post("/api/update-password", async (req, res) => {
-  const { username, otp, password } = req.body;
-
   try {
+    const { username, otp, password } = req.body;
+
     // Find the user by username
     const user = await User.findOne({ username });
     if (!user) {

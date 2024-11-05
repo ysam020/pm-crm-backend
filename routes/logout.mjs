@@ -8,13 +8,15 @@ dotenv.config();
 const router = express.Router();
 
 router.get("/api/logout", async (req, res) => {
-  const token = req.cookies.token;
-
-  if (!token) {
-    return res.status(200).json({ message: "Unauthorized: No token provided" });
-  }
-
   try {
+    const token = req.cookies.token;
+
+    if (!token) {
+      return res
+        .status(200)
+        .json({ message: "Unauthorized: No token provided" });
+    }
+
     // Verify the token to get the userId
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const username = decoded.username;

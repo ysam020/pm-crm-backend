@@ -4,9 +4,8 @@ import User from "../../model/userModel.mjs";
 const router = express.Router();
 
 router.post("/api/webauthn/credential-check", async (req, res) => {
-  const { username } = req.body;
-
   try {
+    const { username } = req.body;
     const user = await User.findOne({ username }).select(
       "webAuthnCredentials isTwoFactorEnabled"
     );

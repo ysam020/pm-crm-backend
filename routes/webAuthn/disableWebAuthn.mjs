@@ -5,8 +5,8 @@ import verifySession from "../../middlewares/verifySession.mjs";
 const router = express.Router();
 
 router.post("/api/disable-webauthn", verifySession, async (req, res) => {
-  const { username } = req.body;
   try {
+    const { username } = req.body;
     const user = await UserModel.findOne({ username });
     if (!user) {
       return res.status(200).json({ message: "User not found" });

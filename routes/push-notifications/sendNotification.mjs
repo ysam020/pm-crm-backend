@@ -6,9 +6,8 @@ import verifySession from "../../middlewares/verifySession.mjs";
 const router = express.Router();
 
 router.post("/api/send-notification", verifySession, async (req, res) => {
-  const { username, message } = req.body;
-
   try {
+    const { username, message } = req.body;
     // Find the user by username
     const user = await UserModel.findOne({ username });
     if (!user) {

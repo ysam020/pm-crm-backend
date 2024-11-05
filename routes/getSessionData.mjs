@@ -8,13 +8,13 @@ import axios from "axios";
 const router = express.Router();
 
 router.get("/api/get-session-data", verifySession, async (req, res) => {
-  const token = req.cookies.token;
-
-  if (!token) {
-    return res.status(200).json({ message: "Unauthorized" });
-  }
-
   try {
+    const token = req.cookies.token;
+
+    if (!token) {
+      return res.status(200).json({ message: "Unauthorized" });
+    }
+
     // Verify the token
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 

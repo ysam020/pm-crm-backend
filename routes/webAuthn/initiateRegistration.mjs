@@ -6,9 +6,8 @@ import verifySession from "../../middlewares/verifySession.mjs";
 const router = express.Router();
 
 router.post("/api/webauthn/register", verifySession, async (req, res) => {
-  const { username } = req.body;
-
   try {
+    const { username } = req.body;
     const user = await UserModel.findOne({ username });
 
     await user.save();

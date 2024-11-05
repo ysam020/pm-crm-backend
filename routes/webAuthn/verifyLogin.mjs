@@ -4,9 +4,8 @@ import { verifyAssertionResponse } from "../../utils/verifyAssertionResponse.mjs
 const router = express.Router();
 
 router.post("/api/webauthn/verify-login", async (req, res) => {
-  const { username, credential } = req.body;
-
   try {
+    const { username, credential } = req.body;
     // Verify assertion response during WebAuthn login
     const loginResponse = await verifyAssertionResponse(username, credential);
 
