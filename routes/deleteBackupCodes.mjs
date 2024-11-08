@@ -10,7 +10,7 @@ const router = express.Router();
 // Route to delete backup codes
 router.delete("/api/delete-backup-codes", verifySession, async (req, res) => {
   try {
-    const token = req.cookies.token;
+    const token = res.locals.token;
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const username = decoded.username;
     // Find the user by username

@@ -16,11 +16,7 @@ router.post("/api/webauthn/credential-check", async (req, res) => {
 
     const isTwoFactorEnabled = user.isTwoFactorEnabled;
 
-    if (
-      !user ||
-      !user.webAuthnCredentials ||
-      user.webAuthnCredentials.length === 0
-    ) {
+    if (!user.webAuthnCredentials || user.webAuthnCredentials.length === 0) {
       return res.json({ hasCredentials: false, isTwoFactorEnabled });
     }
 

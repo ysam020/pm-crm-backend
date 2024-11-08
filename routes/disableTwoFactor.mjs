@@ -1,12 +1,15 @@
 import express from "express";
 import UserModel from "../model/userModel.mjs";
 import verifySession from "../middlewares/verifySession.mjs";
+import jwt from "jsonwebtoken";
 
 const router = express.Router();
 
-router.post("/api/disable-two-factor", verifySession, async (req, res) => {
+router.get("/api/disable-two-factor", verifySession, async (req, res) => {
   try {
-    const { username } = req.body;
+    const token = res.locals.token;
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const username = decoded.username;
     // Find the user by username
     const user = await UserModel.findOne({ username });
     if (!user) {
@@ -19,7 +22,7 @@ router.post("/api/disable-two-factor", verifySession, async (req, res) => {
     user.qrCodeImage = null;
 
     await user.save();
-    res.send({ message: "Two-factor authentication disabled" });
+    res.send({ message: "Two factor authentication disabled" });
   } catch (error) {
     console.error("Error disabling two-factor authentication:", error);
     res

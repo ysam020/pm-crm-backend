@@ -8,11 +8,7 @@ export async function verifyAssertionResponse(username, credential) {
     }
 
     // Parse and decode the credential
-    const {
-      id,
-      rawId,
-      response: { authenticatorData, clientDataJSON, signature, userHandle },
-    } = credential;
+    const { id } = credential;
 
     // Update the credential counter in user's record
     const matchedCredential = user.webAuthnCredentials.find(

@@ -3,12 +3,15 @@ import speakeasy from "speakeasy";
 import QRCode from "qrcode";
 import UserModel from "../model/userModel.mjs";
 import verifySession from "../middlewares/verifySession.mjs";
+import jwt from 'jsonwebtoken'
 
 const router = express.Router();
 
-router.post("/api/enable-two-factor", verifySession, async (req, res) => {
+router.get("/api/enable-two-factor", verifySession, async (req, res) => {
   try {
-    const { username } = req.body;
+    const token = res.locals.token;
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const username = decoded.username;
     const user = await UserModel.findOne({ username });
     if (!user) {
       return res.status(200).json({ message: "User not found" });

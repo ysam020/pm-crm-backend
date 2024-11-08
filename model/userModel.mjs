@@ -203,6 +203,7 @@ const userSchema = new Schema(
     webAuthnCredentials: [CredentialSchema],
     // Push Notification
     fcmTokens: [String],
+    version: { type: Number, default: 0 },
   },
   { optimisticConcurrency: true }
 );

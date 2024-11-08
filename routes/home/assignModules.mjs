@@ -2,11 +2,15 @@ import express from "express";
 import UserModel from "../../model/userModel.mjs";
 import admin from "../../utils/firebaseAdmin.mjs";
 import verifySession from "../../middlewares/verifySession.mjs";
+import jwt from "jsonwebtoken";
 
 const router = express.Router();
 
 router.post("/api/assign-modules", verifySession, async (req, res) => {
   try {
+    const token = res.locals.token;
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const assignee = decoded.username;
     const { modules, username } = req.body;
     const firestore = admin.firestore();
 
@@ -59,7 +63,7 @@ router.post("/api/assign-modules", verifySession, async (req, res) => {
     // Prepare the payload
     const payload = {
       notification: {
-        title: `Notification from ${username}`,
+        title: `Notification from ${assignee}`,
         body: `Module assigned: ${modules.join(", ")}`,
         image:
           "https://paymaster-document.s3.ap-south-1.amazonaws.com/favicon.png",

@@ -3,7 +3,22 @@ import bcrypt from "bcrypt";
 import UserModel from "../../model/userModel.mjs";
 import verifySession from "../../middlewares/verifySession.mjs";
 import dotenv from "dotenv";
+import aws from "aws-sdk";
+import nodemailer from "nodemailer";
+
 dotenv.config();
+
+// Configure AWS SDK
+aws.config.update({
+  accessKeyId: process.env.ACCESS_KEY,
+  secretAccessKey: process.env.SECRET_ACCESS_KEY,
+  region: "ap-south-1",
+});
+
+// Create Nodemailer SES transporter
+let transporter = nodemailer.createTransport({
+  SES: new aws.SES({ apiVersion: "2010-12-01" }),
+});
 
 const router = express.Router();
 

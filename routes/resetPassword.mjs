@@ -8,8 +8,8 @@ const router = express.Router();
 
 router.post("/api/reset-password", verifySession, async (req, res) => {
   try {
+    const token = res.locals.token;
     const { password, new_password } = req.body;
-    const token = req.cookies.token;
 
     if (!token) {
       return res

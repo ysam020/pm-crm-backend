@@ -10,8 +10,7 @@ const router = express.Router();
 
 router.get("/api/logout-from-all-sessions", verifySession, async (req, res) => {
   try {
-    // Get the token from cookies
-    const token = req.cookies.token;
+    const token = res.locals.token;
 
     if (!token) {
       return res

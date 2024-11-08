@@ -7,10 +7,8 @@ import UserModel from "../model/userModel.mjs";
 const router = express.Router();
 
 router.get("/api/verify-user", verifySession, async (req, res) => {
-
   try {
-    const token = req.cookies.token;
-
+    const token = res.locals.token;
     if (!token) {
       return res.status(200).json({ message: "Unauthorized" });
     }
@@ -25,9 +23,9 @@ router.get("/api/verify-user", verifySession, async (req, res) => {
 
     res.json({ user: userWithSessionID });
   } catch (err) {
+    console.log(err);
     res.status(403).json({ message: "Invalid token" });
   }
 });
 
 export default router;
-

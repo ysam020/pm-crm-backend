@@ -12,7 +12,6 @@ dotenv.config();
 
 // Import routes
 import verifyUser from "./routes/verifyUser.mjs";
-import getUserProfile from "./routes/getUserProfile.mjs";
 import getUserData from "./routes/getUserData.mjs";
 import login from "./routes/login.mjs";
 import logout from "./routes/logout.mjs";
@@ -40,6 +39,17 @@ import disableWebAuthn from "./routes/webAuthn/disableWebAuthn.mjs";
 import saveFcmToken from "./routes/push-notifications/saveFcmToken.mjs";
 import sendNotification from "./routes/push-notifications/sendNotification.mjs";
 import disablePushNotifications from "./routes/push-notifications/disablePushNotifications.mjs";
+
+// HR & Management
+// Job Openings
+import addJobOpening from "./routes/hrManagement/job-openings/addJobOpening.mjs";
+import viewJobOpenings from "./routes/hrManagement/job-openings/viewJobOpenings.mjs";
+import applyForJob from "./routes/hrManagement/job-openings/applyForJob.mjs";
+import getJobTitles from "./routes/hrManagement/job-openings/getJobTitles.mjs";
+import viewJobOpening from "./routes/hrManagement/job-openings/viewJobOpening.mjs";
+import viewApplications from "./routes/hrManagement/job-openings/viewApplications.mjs";
+import rejectApplication from "./routes/hrManagement/job-openings/rejectApplication.mjs";
+import scheduleInterview from "./routes/hrManagement/job-openings/scheduleInterview.mjs";
 
 // Employee KYC
 import completeKyc from "./routes/employee-kyc/completeKyc.mjs";
@@ -81,6 +91,7 @@ if (cluster.isPrimary) {
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
   app.use(cookieParser());
+
   app.use(
     cors({
       origin: [
@@ -91,6 +102,7 @@ if (cluster.isPrimary) {
         "http://paymaster-crm.s3-website.ap-south-1.amazonaws.com",
         "https://main.dp5y0oxsnhhdp.amplifyapp.com",
         "https://sameer-yadav.site",
+        "http://localhost:59291",
       ],
       methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
       allowedHeaders: ["Content-Type", "Authorization"],
@@ -116,12 +128,12 @@ if (cluster.isPrimary) {
         try {
           res.send("Server is running on port 9002!");
         } catch (error) {
-          res.status(500).send("An error occurred while updating the jobs");
+          console.log(error);
+          res.status(500).send("An error occurred");
         }
       });
 
       app.use(verifyUser);
-      app.use(getUserProfile);
       app.use(getUserData);
       app.use(login);
       app.use(logout);
@@ -149,6 +161,17 @@ if (cluster.isPrimary) {
       app.use(saveFcmToken);
       app.use(sendNotification);
       app.use(disablePushNotifications);
+
+      // HR & Management
+      // Job Openings
+      app.use(addJobOpening);
+      app.use(viewJobOpenings);
+      app.use(applyForJob);
+      app.use(getJobTitles);
+      app.use(viewJobOpening);
+      app.use(viewApplications);
+      app.use(rejectApplication);
+      app.use(scheduleInterview);
 
       // Employee KYC
       app.use(completeKyc);

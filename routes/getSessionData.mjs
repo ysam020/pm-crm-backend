@@ -1,7 +1,6 @@
 import express from "express";
 import UserModel from "../model/userModel.mjs";
 import verifySession from "../middlewares/verifySession.mjs";
-
 import jwt from "jsonwebtoken";
 import axios from "axios";
 
@@ -9,7 +8,7 @@ const router = express.Router();
 
 router.get("/api/get-session-data", verifySession, async (req, res) => {
   try {
-    const token = req.cookies.token;
+    const token = res.locals.token;
 
     if (!token) {
       return res.status(200).json({ message: "Unauthorized" });
@@ -27,7 +26,7 @@ router.get("/api/get-session-data", verifySession, async (req, res) => {
 
     // Prepare promises for each geolocation API call
     const geoPromises = user.sessions.map(async (session) => {
-      const { loginAt, latitude, longitude, userAgent } = session;
+      const { loginAt, latitude, longitude, userAgent, ipAddress } = session;
 
       // Check if location data is unavailable (latitude/longitude are null)
       if (latitude == null || longitude == null) {
@@ -35,6 +34,7 @@ router.get("/api/get-session-data", verifySession, async (req, res) => {
           loginAt: loginAt,
           userAgent: userAgent,
           locationError: "Location permission denied",
+          ipAddress,
         };
       }
 
@@ -55,6 +55,7 @@ router.get("/api/get-session-data", verifySession, async (req, res) => {
       return {
         loginAt: loginAt,
         userAgent: userAgent,
+        ipAddress,
         road: result.components.road,
         normalizedCity: result.components._normalized_city,
         country: result.components.country,

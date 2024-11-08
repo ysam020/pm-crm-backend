@@ -2,12 +2,15 @@ import express from "express";
 import { generateAttestationOptions } from "../../utils/generateAttestationOptions.mjs";
 import UserModel from "../../model/userModel.mjs";
 import verifySession from "../../middlewares/verifySession.mjs";
+import jwt from "jsonwebtoken";
 
 const router = express.Router();
 
-router.post("/api/webauthn/register", verifySession, async (req, res) => {
+router.get("/api/webauthn/register", verifySession, async (req, res) => {
   try {
-    const { username } = req.body;
+    const token = res.locals.token;
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const username = decoded.username;
     const user = await UserModel.findOne({ username });
 
     await user.save();

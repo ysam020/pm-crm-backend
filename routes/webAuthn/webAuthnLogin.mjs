@@ -16,13 +16,6 @@ const authenticateUser = async (
     {
       userId: user._id,
       username: user.username,
-      role: user.role,
-      first_name: user.first_name,
-      middle_name: user.middle_name,
-      last_name: user.last_name,
-      employee_photo: user.employee_photo,
-      email: user.email,
-      modules: user.modules,
     },
     process.env.JWT_SECRET,
     { expiresIn: "1h" }

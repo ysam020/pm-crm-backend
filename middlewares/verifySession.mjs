@@ -8,7 +8,7 @@ const verifySession = async (req, res, next) => {
   const token = req.cookies.token;
 
   if (!token) {
-    return res.status(200).json({ message: "Unauthorized" });
+    return res.status(401).json({ message: "Unauthorized" });
   }
 
   try {
@@ -20,11 +20,10 @@ const verifySession = async (req, res, next) => {
 
     // Find the user in the database
     const username = decoded.username;
-    const user = await UserModel.findOne({ username });
+    let user = await UserModel.findOne({ username });
 
     if (!user) {
-      // User not found in the database
-      return res.status(200).json({ message: "Forbidden: User not found" });
+      return res.status(403).json({ message: "Forbidden: User not found" });
     }
 
     // Get current time for session checks
@@ -32,38 +31,40 @@ const verifySession = async (req, res, next) => {
 
     // Clean up expired sessions
     user.sessions = user.sessions.filter((session) => session.expiresAt > now);
+
     await user.updateOne({ sessions: user.sessions });
 
     // Check if the session exists in the user's sessions after cleanup
-    const sessionExists = user.sessions.some(
+    const sessionIndex = user.sessions.findIndex(
       (session) => session.sessionID === token
     );
 
-    if (!sessionExists) {
-      // Clear the cookie if the session does not exist (invalid or expired)
+    if (sessionIndex === -1) {
       res.clearCookie("token", {
         httpOnly: true,
-        secure: process.env.NODE_ENV === "production" ? true : false,
+        secure: process.env.NODE_ENV === "production",
         sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax",
       });
       return res
-        .status(200)
+        .status(403)
         .json({ message: "Forbidden: Invalid or expired session" });
     }
 
-    // Proceed to the next middleware or route handler
-    next();
+    // Attach the new token to res.locals for use in the route
+    res.locals.token = token;
+
+    next(); // Proceed to the next middleware or route handler
   } catch (err) {
     console.error("Token verification error:", err);
 
     // Clear the cookie if the token is invalid
     res.clearCookie("token", {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production" ? true : false,
+      secure: process.env.NODE_ENV === "production",
       sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax",
     });
 
-    return res.status(200).json({ message: "Forbidden: Invalid token" });
+    return res.status(403).json({ message: "Forbidden: Invalid token" });
   }
 };
 

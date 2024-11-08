@@ -131,13 +131,6 @@ router.post("/api/login", async (req, res) => {
       {
         userId: user._id,
         username: user.username,
-        role: user.role,
-        first_name: user.first_name,
-        middle_name: user.middle_name,
-        last_name: user.last_name,
-        employee_photo: user.employee_photo,
-        email: user.email,
-        modules: user.modules,
       },
       process.env.JWT_SECRET,
       { expiresIn: "1h" }
@@ -147,10 +140,10 @@ router.post("/api/login", async (req, res) => {
       sessionID: jwtToken,
       loginAt: new Date(),
       expiresAt: new Date(Date.now() + 60 * 60 * 1000),
-      ipAddress: req.ip,
       userAgent: userAgent,
       latitude: geolocation?.latitude || null,
       longitude: geolocation?.longitude || null,
+      ipAddress: geolocation?.ipAddress || null,
     };
 
     user.sessions.push(newSession);

@@ -1,6 +1,7 @@
 import express from "express";
 import { verifyAttestationResponse } from "../../utils/verifyAttestationResponse.mjs";
 import verifySession from "../../middlewares/verifySession.mjs";
+import jwt from 'jsonwebtoken'
 
 const router = express.Router();
 
@@ -9,7 +10,10 @@ router.post(
   verifySession,
   async (req, res) => {
     try {
-      const { username, credential } = req.body;
+      const token = res.locals.token;
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      const username = decoded.username;
+      const { credential } = req.body;
       const data = await verifyAttestationResponse(username, credential);
       res.json(data);
     } catch (error) {
