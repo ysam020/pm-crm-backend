@@ -34,21 +34,30 @@ This project is a comprehensive CRM (Customer Relationship Management) and HRM (
 
 The following libraries enhance the functionality and design of the app. Here’s a list along with their use cases:
 
-| Library               | Version  | Use Case                                               |
-| --------------------- | -------- | ------------------------------------------------------ |
-| `@aws-sdk/client-s3`  | ^3.688.0 | AWS SDK for S3 services                                |
-| `@aws-sdk/client-ses` | ^3.687.0 | AWS SDK for SES services                               |
-| `axios`               | ^1.7.7   | HTTP client for API requests                           |
-| `bcrypt`              | ^5.1.0   | Library for hashing passwords                          |
-| `compression`         | ^1.7.4   | Middleware to compress response bodies                 |
-| `dotenv`              | ^16.1.4  | Loads environment variables from `.env` file           |
-| `express`             | ^4.18.2  | Web framework for creating server and APIs             |
-| `firebase-admin`      | ^12.7.0  | Firebase Admin SDK for server-side Firebase operations |
-| `jsonwebtoken`        | ^9.0.2   | For signing and verifying JSON Web Tokens (JWT)        |
-| `node-schedule`       | ^2.1.1   | Job scheduling                                         |
-| `qrcode`              | ^1.5.4   | QR code generation                                     |
-| `swagger-jsdoc`       | ^6.2.8   | Swagger documentation generation from JSDoc comments   |
-| `swagger-ui-express`  | ^5.0.1   | Swagger UI for API documentation                       |
+| Library                         | Version  | Use Case                                               |
+| ------------------------------- | -------- | ------------------------------------------------------ |
+| `@aws-sdk/client-s3`            | ^3.688.0 | AWS SDK for S3 services                                |
+| `@aws-sdk/client-ses`           | ^3.687.0 | AWS SDK for SES services                               |
+| `@aws-sdk/s3-request-presigner` | ^3.688.0 | Request Pre-signed URL to upload files on AWS S3       |
+| `axios`                         | ^1.7.7   | HTTP client for API requests                           |
+| `base64url`                     | ^3.0.1   | Convert credentials to buffer                          |
+| `bcrypt`                        | ^5.1.0   | Library for hashing passwords                          |
+| `body-parser`                   | ^1.20.2  | Parse incoming request bodies                          |
+| `compression`                   | ^1.7.4   | Middleware to compress response bodies                 |
+| `cookie-parser`                 | ^1.4.7   | Parse cookies attached to incoming HTTP requests       |
+| `cors`                          | ^2.8.5   | Cross origin resource sharing                          |
+| `crypto`                        | ^1.0.1   | Library for AES-256 encryption                         |
+| `dotenv`                        | ^16.1.4  | Loads environment variables from `.env` file           |
+| `express`                       | ^4.18.2  | Web framework for creating server and APIs             |
+| `firebase-admin`                | ^12.7.0  | Firebase Admin SDK for server-side Firebase operations |
+| `jsonwebtoken`                  | ^9.0.2   | For signing and verifying JSON Web Tokens (JWT)        |
+| `node-schedule`                 | ^2.1.1   | Job scheduling                                         |
+| `nodemon`                       | ^3.0.1   | Automatically restarts Node.js server on code changes  |
+| `pm2`                           | ^5.3.0   | PM2 is a process manager for Node.js                   |
+| `qrcode`                        | ^1.5.4   | QR code generation                                     |
+| `speakeasy`                     | ^2.0.0   | For Google Authenticator two-factor authentication     |
+| `swagger-jsdoc`                 | ^6.2.8   | Swagger documentation generation from JSDoc comments   |
+| `swagger-ui-express`            | ^5.0.1   | Swagger UI for API documentation                       |
 
 ## Folder Structure
 
