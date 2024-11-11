@@ -1,3 +1,23 @@
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     UnblockUsersJob:
+ *       type: object
+ *       properties:
+ *         jobScheduled:
+ *           type: string
+ *           example: "Job scheduled successfully. Will run daily at 12:00 AM"
+ *         jobStatus:
+ *           type: string
+ *           example: "No users to unblock."
+ *       description: Information about the scheduled job for unblocking users.
+ *
+ * @swagger
+ * tags:
+ *   - name: Admin
+ */
+
 import express from "express";
 import schedule from "node-schedule";
 import UserModel from "../model/userModel.mjs";

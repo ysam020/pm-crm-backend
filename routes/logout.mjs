@@ -1,3 +1,56 @@
+/**
+ * @swagger
+ * /api/logout:
+ *   get:
+ *     summary: Log out the user by invalidating the session
+ *     description: This endpoint logs out the user by removing the session associated with the provided JWT token. It also clears the authentication cookie.
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Successfully logged out the user and invalidated the session.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Logged out successfully"
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Unauthorized: No token provided"
+ *       404:
+ *         description: User not registered
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "User not found"
+ *       500:
+ *         description: Internal server error if something goes wrong.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Something went wrong"
+ *     tags:
+ *       - Authentication
+ */
+
 import express from "express";
 import jwt from "jsonwebtoken";
 import UserModel from "../model/userModel.mjs";
@@ -14,7 +67,7 @@ router.get("/api/logout", verifySession, async (req, res) => {
 
     if (!token) {
       return res
-        .status(200)
+        .status(401)
         .json({ message: "Unauthorized: No token provided" });
     }
 
@@ -25,7 +78,7 @@ router.get("/api/logout", verifySession, async (req, res) => {
     // Find the user and remove the session
     const user = await UserModel.findOne({ username });
     if (!user) {
-      return res.status(200).json({ message: "User not found" });
+      return res.status(404).json({ message: "User not found" });
     }
 
     // Remove the session based on the token (you can also store session ID if needed)

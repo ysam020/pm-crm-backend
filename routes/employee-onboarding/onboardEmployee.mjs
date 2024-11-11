@@ -3,21 +3,17 @@ import bcrypt from "bcrypt";
 import UserModel from "../../model/userModel.mjs";
 import verifySession from "../../middlewares/verifySession.mjs";
 import dotenv from "dotenv";
-import aws from "aws-sdk";
-import nodemailer from "nodemailer";
+import { SESClient, SendEmailCommand } from "@aws-sdk/client-ses"; // AWS SDK v3
 
 dotenv.config();
 
-// Configure AWS SDK
-aws.config.update({
-  accessKeyId: process.env.ACCESS_KEY,
-  secretAccessKey: process.env.SECRET_ACCESS_KEY,
-  region: "ap-south-1",
-});
-
-// Create Nodemailer SES transporter
-let transporter = nodemailer.createTransport({
-  SES: new aws.SES({ apiVersion: "2010-12-01" }),
+// Configure AWS SES Client
+const sesClient = new SESClient({
+  region: process.env.REGION,
+  credentials: {
+    accessKeyId: process.env.ACCESS_KEY,
+    secretAccessKey: process.env.SECRET_ACCESS_KEY,
+  },
 });
 
 const router = express.Router();
@@ -38,10 +34,9 @@ router.post("/api/onboard-employee", verifySession, async (req, res) => {
     const existingEmployee = await UserModel.findOne({ username });
 
     if (existingEmployee) {
-      res.status(200).send({
+      return res.status(200).send({
         message: `Employee with username: ${username} already exists`,
       });
-      return;
     }
 
     // Hash the password
@@ -62,36 +57,46 @@ router.post("/api/onboard-employee", verifySession, async (req, res) => {
 
     await newUser.save();
 
-    let mailOptions = {
-      from: "admin@surajforwarders.com",
-      to: email,
-      subject: `Welcome to the Team, ${first_name.toUpperCase()}!`,
-      html: `Dear ${first_name.toUpperCase()},
-      <br/><br/>
-      Congratulations on your new role!
-      <br/><br/>
-      We are pleased to have you join us and look forward to the positive impact you will bring to our team. Enclosed are your onboarding details and some resources to help you get started.
-      <br/>
+    // Prepare the email content (raw HTML)
+    const emailBody = `
+      <p>Dear ${first_name.toUpperCase()},</p>
+      <p>Congratulations on your new role!</p>
+      <p>We are pleased to have you join us and look forward to the positive impact you will bring to our team. Enclosed are your onboarding details and some resources to help you get started.</p>
       <ul>
         <li>Username: ${username}</li>
         <li>Password: ${password}</li>
         <li>URL: ${CLIENT_URI}</li>
       </ul>
-      Should you have any questions, please don't hesitate to ask.
-      Welcome aboard!
-      <br/><br/>
-      Warm regards,
-      <br/>
-      Shalini Arun
-      <br/>
-      HR & Admin
-      <br/>
-      Suraj Forwarders Private Limited
-      <br/><br/>
-      <img src="https://alvision-images.s3.ap-south-1.amazonaws.com/Shalini+Mam.jpg" alt="Email Signature" style="max-width: 100%; height: auto;">`,
+      <p>Should you have any questions, please don't hesitate to ask.</p>
+      <p>Welcome aboard!</p>
+      <br />
+      <p>Warm regards,</p>
+      <p>Shalini Arun<br />HR & Admin<br />Suraj Forwarders Private Limited</p>
+      <br />
+      <img src="https://alvision-images.s3.ap-south-1.amazonaws.com/Shalini+Mam.jpg" alt="Email Signature" style="max-width: 100%; height: auto;" />
+    `;
+
+    // Prepare SES email parameters
+    const params = {
+      Source: process.env.EMAIL_FROM,
+      Destination: {
+        ToAddresses: [email],
+      },
+      Message: {
+        Subject: {
+          Data: `Welcome to the Team, ${first_name.toUpperCase()}!`,
+        },
+        Body: {
+          Html: {
+            Data: emailBody, // HTML formatted body
+          },
+        },
+      },
     };
 
-    await transporter.sendMail(mailOptions);
+    // Send the email using AWS SES
+    const command = new SendEmailCommand(params);
+    await sesClient.send(command);
 
     console.log("Message sent");
     res.status(201).send({ message: "User onboarded successfully" });

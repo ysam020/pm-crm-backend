@@ -1,3 +1,46 @@
+/**
+ * @swagger
+ * /api/delete-backup-codes:
+ *   delete:
+ *     summary: Delete backup codes
+ *     description: Deletes all backup codes associated with user.
+ *     security:
+ *       - bearerAuth: []  # This requires a valid JWT token
+ *     responses:
+ *       200:
+ *         description: Backup codes deleted successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Backup codes deleted"
+ *       404:
+ *         description: User not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "User not found"
+ *       500:
+ *         description: Internal Server Error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Error deleting backup codes"
+ *     tags:
+ *       - Backup Codes
+ */
+
 import express from "express";
 import jwt from "jsonwebtoken";
 import UserModel from "../model/userModel.mjs";

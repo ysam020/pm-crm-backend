@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import aesEncrypt from "../utils/aesEncrypt.mjs";
 
 const Schema = mongoose.Schema;
 
@@ -203,7 +204,6 @@ const userSchema = new Schema(
     webAuthnCredentials: [CredentialSchema],
     // Push Notification
     fcmTokens: [String],
-    version: { type: Number, default: 0 },
   },
   { optimisticConcurrency: true }
 );
@@ -223,8 +223,10 @@ userSchema.methods.generateBackupCodes = function (numCodes = 10) {
     codes.push(code);
   }
 
-  this.backupCodes = codes; // Save codes to the user instance
-  return codes; // Return the generated codes
+  // Encrypt the backup codes before saving them using AES-256
+  const encryptedCodes = codes.map((code) => aesEncrypt(code)); // Encrypt each code
+  this.backupCodes = encryptedCodes; // Save encrypted codes to the user instance
+  return codes; // Return the unencrypted codes (or return encrypted if needed)
 };
 
 const UserModel = mongoose.model("User", userSchema);

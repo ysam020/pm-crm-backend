@@ -1,3 +1,83 @@
+/**
+ * @swagger
+ * /api/add-job-opening:
+ *   post:
+ *     summary: Add a new job opening
+ *     description: This route allows an authenticated user to create a new job opening in the system. It checks for an existing job opening with the same title that is still active before creating a new one.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               jobTitle:
+ *                 type: string
+ *                 example: "Software Engineer"
+ *               jobPostingDate:
+ *                 type: string
+ *                 format: date
+ *                 example: "2024-11-10"
+ *               applicationDeadline:
+ *                 type: string
+ *                 format: date
+ *                 example: "2024-12-01"
+ *               jobDescription:
+ *                 type: string
+ *                 example: "Responsible for building and maintaining web applications using the MERN stack."
+ *               requiredSkills:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                 example: ["JavaScript", "React", "Node.js"]
+ *               experience:
+ *                 type: string
+ *                 example: "3+ years"
+ *               employmentType:
+ *                 type: string
+ *                 example: "Full-time"
+ *               budget:
+ *                 type: number
+ *                 format: float
+ *                 example: 60000
+ *               hiringManager:
+ *                 type: string
+ *                 example: "John Doe"
+ *     responses:
+ *       201:
+ *         description: Successfully created the job opening.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Job opening created successfully"
+ *       400:
+ *         description: Bad Request. The request body may have validation errors.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Error creating job opening"
+ *       409:
+ *         description: Conflict. A job with the same title and an active application deadline already exists.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "A job with the same title is active."
+ *     tags:
+ *       - Job Openings
+ */
+
 import express from "express";
 import JobOpeningModel from "../../../model/jobOpeneningModel.mjs";
 import verifySession from "../../../middlewares/verifySession.mjs";
@@ -39,8 +119,7 @@ router.post("/api/add-job-opening", verifySession, async (req, res) => {
       message: "Job opening created successfully",
     });
   } catch (error) {
-    // Handle errors (e.g., validation errors)
-    res.status(400).json({ error: error.message });
+    res.status(400).json({ message: "Error creating job opening" });
   }
 });
 

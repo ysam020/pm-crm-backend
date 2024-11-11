@@ -63,7 +63,7 @@ const authenticateUser = async (
 // WebAuthn-only login route
 router.post("/api/webauthn-login", async (req, res) => {
   const { username, userAgent, geolocation } = req.body;
-
+  console.log(username);
   try {
     const user = await UserModel.findOne({ username });
     if (!user) {

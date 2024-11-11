@@ -1,21 +1,315 @@
+// /**
+//  * @swagger
+//  * /api/login:
+//  *   post:
+//  *     summary: User login
+//  *     description: Log in a user with username, password, and optional two-factor authentication or backup code.
+//  *     requestBody:
+//  *       required: true
+//  *       content:
+//  *         application/json:
+//  *           schema:
+//  *             type: object
+//  *             properties:
+//  *               username:
+//  *                 type: string
+//  *                 example: "user_name"
+//  *               password:
+//  *                 type: string
+//  *                 example: "1234"
+//  *               twoFAToken:
+//  *                 type: string
+//  *                 example: "123456"
+//  *               backupCode:
+//  *                 type: string
+//  *                 example: "12345678"
+//  *               userAgent:
+//  *                 type: string
+//  *                 example: "Mozilla/5.0"
+//  *               geolocation:
+//  *                 type: object
+//  *                 properties:
+//  *                   latitude:
+//  *                     type: number
+//  *                     example: 37.7749
+//  *                   longitude:
+//  *                     type: number
+//  *                     example: -122.4194
+//  *                   ipAddress:
+//  *                     type: string
+//  *                     example: "192.168.1.1"
+//  *               isTwoFactorEnabled:
+//  *                 type: boolean
+//  *                 example: false
+//  *               useBackupCode:
+//  *                 type: boolean
+//  *                 example: false
+//  *     responses:
+//  *       200:
+//  *         description: Login successful or with messages on unsuccessful attempts
+//  *         content:
+//  *           application/json:
+//  *             schema:
+//  *               type: object
+//  *               properties:
+//  *                 message:
+//  *                   type: string
+//  *                   example: "Login successful"
+//  *                 user:
+//  *                   type: object
+//  *                   properties:
+//  *                     username:
+//  *                       type: string
+//  *                       example: "user_name"
+//  *                     role:
+//  *                       type: string
+//  *                       example: "admin"
+//  *                     first_name:
+//  *                       type: string
+//  *                       example: "John"
+//  *                     middle_name:
+//  *                       type: string
+//  *                       example: "A."
+//  *                     last_name:
+//  *                       type: string
+//  *                       example: "Doe"
+//  *                     employee_photo:
+//  *                       type: string
+//  *                       example: "url_to_photo"
+//  *                     email:
+//  *                       type: string
+//  *                       example: "user@example.com"
+//  *                     modules:
+//  *                       type: array
+//  *                       items:
+//  *                         type: string
+//  *                         example: "dashboard"
+//  *                     sessionID:
+//  *                       type: string
+//  *                       example: "jwt_token_here"
+//  *                 unblockTime:
+//  *                   type: string
+//  *                   example: "2024-12-01T23:59:59.000Z"
+//  *       400:
+//  *         description: Bad Request - missing required fields or invalid data
+//  *       401:
+//  *         description: Unauthorized
+//  *         content:
+//  *           application/json:
+//  *             schema:
+//  *               type: object
+//  *               properties:
+//  *                 message:
+//  *                   type: string
+//  *                   example: "Invalid 2FA token"
+//  *       403:
+//  *         description: Account blocked
+//  *         content:
+//  *           application/json:
+//  *             schema:
+//  *               type: object
+//  *               properties:
+//  *                 message:
+//  *                   type: string
+//  *                   example: "Account blocked until 2023-12-31T23:59:59.000Z. You can try resetting your password."
+//  *       404:
+//  *         description: User not registered
+//  *         content:
+//  *           application/json:
+//  *             schema:
+//  *               type: object
+//  *               properties:
+//  *                 message:
+//  *                   type: string
+//  *                   example: "User not registered"
+//  *       500:
+//  *         description: Internal Server Error
+//  *         content:
+//  *           application/json:
+//  *             schema:
+//  *               type: object
+//  *               properties:
+//  *                 message:
+//  *                   type: string
+//  *                   example: "Something went wrong"
+//  *     tags:
+//  *       - Authentication
+//  */
+
+/**
+ * @swagger
+ * /api/login:
+ *   post:
+ *     summary: User login
+ *     description: >
+ *       This endpoint logs in a user by validating their credentials. The login process includes the following steps:
+ *
+ *       1. **Basic Authentication**: The user provides a `username` and `password`.
+ *          - **Correct Password**: Proceed to two-factor authentication if enabled.
+ *          - **Incorrect Password**: The server increments the failed login attempt counter for the user, and the user receives a warning mail that there has been a login attempt on their account with incorrect credentials. If the number of attempts reaches a configured threshold, the account is temporarily blocked.
+ *          - **Blocked Account**: If the account is blocked due to repeated failed attempts, the response includes an `unblockTime`, informing the user when they can try logging in again. Or they can reset their password to unblock their account.
+ *       2. **Two-Factor Authentication (2FA)**:
+ *          - If `isTwoFactorEnabled` is true, the user must provide a valid `twoFAToken`.
+ *          - Alternatively, if `useBackupCode` is true, the user can provide a `backupCode`. In this case, password is not required.
+ *
+ *       3. **Device and Location Tracking**:
+ *          - The client should send additional details like `userAgent` (to identify the browser or device) and `geolocation` data (`latitude`, `longitude`, and `ipAddress`).
+ *
+ *       4. **Response Handling**:
+ *          - If login is successful, user data and `sessionID` (JWT token) are returned.
+ *          - If the account is blocked, a 403 response with an `unblockTime` is sent.
+ *          - If login fails due to an unregistered user, a 404 response is sent.
+ *
+ *       5. **Error Codes**:
+ *          - This endpoint provides different responses based on the login attempt, including codes for unauthorized access, account blocking, and unregistered users.
+ *
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               username:
+ *                 type: string
+ *                 example: "user_name"
+ *               password:
+ *                 type: string
+ *                 example: "1234"
+ *               twoFAToken:
+ *                 type: string
+ *                 example: "123456"
+ *               backupCode:
+ *                 type: string
+ *                 example: "12345678"
+ *               userAgent:
+ *                 type: string
+ *                 example: "Mozilla/5.0"
+ *               geolocation:
+ *                 type: object
+ *                 properties:
+ *                   latitude:
+ *                     type: number
+ *                     example: 37.7749
+ *                   longitude:
+ *                     type: number
+ *                     example: -122.4194
+ *                   ipAddress:
+ *                     type: string
+ *                     example: "192.168.1.1"
+ *               isTwoFactorEnabled:
+ *                 type: boolean
+ *                 example: false
+ *               useBackupCode:
+ *                 type: boolean
+ *                 example: false
+ *     responses:
+ *       200:
+ *         description: Login successful or with messages on unsuccessful attempts.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Login successful"
+ *                 user:
+ *                   type: object
+ *                   properties:
+ *                     username:
+ *                       type: string
+ *                       example: "user_name"
+ *                     role:
+ *                       type: string
+ *                       example: "admin"
+ *                     first_name:
+ *                       type: string
+ *                       example: "John"
+ *                     middle_name:
+ *                       type: string
+ *                       example: "A."
+ *                     last_name:
+ *                       type: string
+ *                       example: "Doe"
+ *                     employee_photo:
+ *                       type: string
+ *                       example: "url_to_photo"
+ *                     email:
+ *                       type: string
+ *                       example: "user@example.com"
+ *                     modules:
+ *                       type: array
+ *                       items:
+ *                         type: string
+ *                         example: "dashboard"
+ *                     sessionID:
+ *                       type: string
+ *                       example: "jwt_token_here"
+ *                 unblockTime:
+ *                   type: string
+ *                   example: "2024-12-01T23:59:59.000Z"
+ *       400:
+ *         description: Bad Request - missing required fields or invalid data.
+ *       401:
+ *         description: Unauthorized - failed authentication.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Invalid 2FA token"
+ *       403:
+ *         description: Account blocked.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Account blocked until 2023-12-31T23:59:59.000Z. You can try resetting your password."
+ *       404:
+ *         description: User not registered.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "User not registered"
+ *       500:
+ *         description: Internal Server Error - an error occurred on the server.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Something went wrong"
+ *     tags:
+ *       - Authentication
+ */
+
 import express from "express";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import UserModel from "../model/userModel.mjs";
 import speakeasy from "speakeasy";
-import aws from "aws-sdk";
-import nodemailer from "nodemailer";
+import { SESClient, SendEmailCommand } from "@aws-sdk/client-ses"; // Import SES client from AWS SDK v3
+import aesDecrypt from "../utils/aesDecrypt.mjs";
 
-// Configure AWS SDK
-aws.config.update({
-  accessKeyId: process.env.ACCESS_KEY,
-  secretAccessKey: process.env.SECRET_ACCESS_KEY,
-  region: "ap-south-1",
-});
-
-// Create Nodemailer SES transporter
-let transporter = nodemailer.createTransport({
-  SES: new aws.SES({ apiVersion: "2010-12-01" }),
+// Configure AWS SES client (SDK v3)
+const sesClient = new SESClient({
+  region: process.env.REGION,
+  credentials: {
+    accessKeyId: process.env.ACCESS_KEY,
+    secretAccessKey: process.env.SECRET_ACCESS_KEY,
+  },
 });
 
 const router = express.Router();
@@ -34,13 +328,13 @@ router.post("/api/login", async (req, res) => {
     } = req.body;
     const user = await UserModel.findOne({ username });
     if (!user) {
-      return res.status(200).json({ message: "User not registered" });
+      return res.status(404).json({ message: "User not registered" });
     }
 
     // Check if user is blocked
     const currentDate = new Date();
     if (user.isBlocked && user.blockedUntil > currentDate) {
-      return res.status(200).json({
+      return res.status(403).json({
         message: `Account is blocked till ${user.blockedUntil}. You can try resetting your password.`,
       });
     }
@@ -48,9 +342,12 @@ router.post("/api/login", async (req, res) => {
     // Check if using backup code for login
     if (useBackupCode) {
       // If using backup code, validate it
-      const codeIndex = user.backupCodes.indexOf(backupCode);
+      const codeIndex = user.backupCodes.findIndex(
+        (encryptedCode) => aesDecrypt(encryptedCode) === backupCode
+      );
+
       if (codeIndex === -1) {
-        return res.status(200).json({ message: "Invalid backup code" });
+        return res.status(400).json({ message: "Invalid backup code" });
       }
 
       // Remove the used backup code and save user
@@ -81,22 +378,32 @@ router.post("/api/login", async (req, res) => {
         } else {
           responseMessage += ` You have ${attemptsLeft} attempts left before your account is blocked.`;
 
-          const mailOptions = {
-            to: user.email,
-            from: process.env.EMAIL_FROM,
-            subject: "Login Attempt Warning",
-            text: `Dear ${user.username}, there has been a failed login attempt on your account. If this was not you, please take appropriate actions to secure your account.`,
-            html: `<p>Dear ${user.username},</p><p>There has been a failed login attempt on your account. If this was not you, please <strong>change your password</strong> immediately.</p>`,
+          // Send warning email using SES
+          const params = {
+            Source: process.env.EMAIL_FROM, // The sender email address
+            Destination: {
+              ToAddresses: [user.email], // Recipient email address
+            },
+            Message: {
+              Subject: { Data: "Login Attempt Warning" },
+              Body: {
+                Html: {
+                  Data: `<p>Dear ${user.username},</p><p>There has been a failed login attempt on your account. If this was not you, please <strong>change your password</strong> immediately.</p>`,
+                },
+              },
+            },
           };
 
+          const sendEmailCommand = new SendEmailCommand(params);
           try {
-            await transporter.sendMail(mailOptions);
+            await sesClient.send(sendEmailCommand);
+            console.log("Warning email sent successfully.");
           } catch (err) {
             console.error("Error sending email:", err);
           }
         }
 
-        return res.status(200).json({
+        return res.status(400).json({
           message: responseMessage,
           unblockTime: user.isBlocked ? user.blockedUntil : null,
         });
@@ -112,13 +419,13 @@ router.post("/api/login", async (req, res) => {
       if (isTwoFactorEnabled) {
         if (user.twoFactorSecret) {
           const isTokenValid = speakeasy.totp.verify({
-            secret: user.twoFactorSecret,
+            secret: aesDecrypt(user.twoFactorSecret),
             encoding: "base32",
             token: twoFAToken,
           });
 
           if (!isTokenValid) {
-            return res.status(200).json({ message: "Invalid 2FA token" });
+            return res.status(401).json({ message: "Invalid 2FA token" });
           }
         } else {
           return res.status(400).json({ message: "2FA token is required." });

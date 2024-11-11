@@ -1,3 +1,55 @@
+/**
+ * @swagger
+ * /api/save-fcm-token:
+ *   put:
+ *     summary: Save FCM token for push notifications
+ *     description: This route saves the Firebase Cloud Messaging (FCM) token provided by the user to enable push notifications. The user must be authenticated via a valid session.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               fcmToken:
+ *                 type: string
+ *                 description: The Firebase Cloud Messaging (FCM) token provided by the user to register for push notifications.
+ *                 example: "fcm_token_string_here"
+ *     responses:
+ *       200:
+ *         description: Successfully saved the FCM token and enabled push notifications.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Push notification enabled"
+ *       404:
+ *         description: User not found. The user with the provided session token doesn't exist in the database.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "User not found"
+ *       500:
+ *         description: Internal server error. Failed to save the FCM token.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "An error occurred while saving the FCM token. Please try again later"
+ *     tags:
+ *       - Push Notifications
+ */
+
 import express from "express";
 import UserModel from "../../model/userModel.mjs";
 import verifySession from "../../middlewares/verifySession.mjs";
@@ -5,7 +57,7 @@ import jwt from "jsonwebtoken";
 
 const router = express.Router();
 
-router.post("/api/save-fcm-token", verifySession, async (req, res) => {
+router.put("/api/save-fcm-token", verifySession, async (req, res) => {
   try {
     const token = res.locals.token;
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
@@ -14,7 +66,7 @@ router.post("/api/save-fcm-token", verifySession, async (req, res) => {
     // Find the user by username
     const user = await UserModel.findOne({ username });
     if (!user) {
-      return res.status(404).send({ message: "User not found" }); // Changed status code to 404
+      return res.status(404).send({ message: "User not found" });
     }
 
     // Add the token to the array if it doesn't already exist
@@ -23,13 +75,13 @@ router.post("/api/save-fcm-token", verifySession, async (req, res) => {
     }
 
     await user.save();
-    res.send({ message: "Push notification enabled" });
+    res.status(200).send({ message: "Push notification enabled" });
   } catch (error) {
     console.error("Error saving FCM token:", error); // Log the error for debugging
     res.status(500).send({
       message:
-        "An error occurred while saving the FCM token. Please try again later.",
-    }); // Send a user-friendly error message
+        "An error occurred while saving the FCM token. Please try again later",
+    });
   }
 });
 

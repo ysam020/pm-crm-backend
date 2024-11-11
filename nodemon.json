@@ -9,7 +9,8 @@
     "middlewares",
     "utils",
     ".env",
-    "logger.js"
+    "logger.js",
+    "swaggerConfig.js"
   ],
   "ext": "js,json,mjs",
   "exec": "node app.mjs"

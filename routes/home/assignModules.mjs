@@ -1,3 +1,69 @@
+/**
+ * @swagger
+ * /api/assign-modules:
+ *   put:
+ *     summary: Assign modules to a user and send notifications
+ *     description: This route assigns one or more modules to a user, stores the modules in Firestore (for real-time updates), and sends a notification to the user's devices via Firebase Cloud Messaging (FCM).
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               username:
+ *                 type: string
+ *                 example: "user_name"
+ *               modules:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                 example: ["Module1", "Module2"]
+ *     responses:
+ *       200:
+ *         description: Modules assigned successfully and notification sent.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Notification sent successfully"
+ *       400:
+ *         description: User has no FCM tokens
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "User has no FCM tokens"
+ *       404:
+ *         description: User not found.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "User not found"
+ *       500:
+ *         description: Internal server error when assigning modules or sending notifications.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Internal Server Error"
+ *     tags:
+ *       - Admin
+ */
+
 import express from "express";
 import UserModel from "../../model/userModel.mjs";
 import admin from "../../utils/firebaseAdmin.mjs";
@@ -6,7 +72,7 @@ import jwt from "jsonwebtoken";
 
 const router = express.Router();
 
-router.post("/api/assign-modules", verifySession, async (req, res) => {
+router.put("/api/assign-modules", verifySession, async (req, res) => {
   try {
     const token = res.locals.token;
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
@@ -19,11 +85,6 @@ router.post("/api/assign-modules", verifySession, async (req, res) => {
 
     // Reference to the 'moduleName' subcollection
     const moduleRef = userDocRef.collection("moduleName");
-
-    // Ensure the modules array is valid
-    if (!Array.isArray(modules) || modules.length === 0) {
-      return res.status(400).send({ message: "No modules to assign" });
-    }
 
     // Use Promise.all to ensure all modules are added
     await Promise.all(
@@ -47,7 +108,7 @@ router.post("/api/assign-modules", verifySession, async (req, res) => {
     const user = await UserModel.findOne({ username });
 
     if (!user) {
-      return res.status(200).send({ message: "User not found" });
+      return res.status(404).send({ message: "User not found" });
     }
 
     // Update user modules with unique values
@@ -57,7 +118,7 @@ router.post("/api/assign-modules", verifySession, async (req, res) => {
 
     // Ensure the user has FCM tokens
     if (!user.fcmTokens || user.fcmTokens.length === 0) {
-      return res.status(200).send({ message: "User has no FCM tokens" });
+      return res.status(400).send({ message: "User has no FCM tokens" });
     }
 
     // Prepare the payload
@@ -90,10 +151,10 @@ router.post("/api/assign-modules", verifySession, async (req, res) => {
     if (failedTokens.length > 0) {
       console.log("Failed to send notifications for tokens:", failedTokens);
     }
-    res.send({ message: "Notification sent successfully", responses });
+    res.status(200).send({ message: "Notification sent successfully" });
   } catch (error) {
     console.error("Error assigning modules:", error);
-    res.status(500).send("Internal Server Error");
+    res.status(500).send({ message: "Internal Server Error" });
   }
 });
 

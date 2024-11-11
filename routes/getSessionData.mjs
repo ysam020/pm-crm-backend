@@ -1,3 +1,91 @@
+/**
+ * @swagger
+ * /api/get-session-data:
+ *   get:
+ *     summary: Retrieve session data with geolocation information for a user
+ *     description: This endpoint fetches the session data of the currently authenticated user, including geolocation details for each login session.
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Successfully retrieved session data with geolocation information for each session.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   loginAt:
+ *                     type: string
+ *                     example: "2024-11-09T12:34:56Z"
+ *                   userAgent:
+ *                     type: string
+ *                     example: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+ *                   ipAddress:
+ *                     type: string
+ *                     example: "192.168.1.1"
+ *                   locationError:
+ *                     type: string
+ *                     example: "Location permission denied"
+ *                   road:
+ *                     type: string
+ *                     example: "Main Street"
+ *                   normalizedCity:
+ *                     type: string
+ *                     example: "Los Angeles"
+ *                   country:
+ *                     type: string
+ *                     example: "United States"
+ *                   postcode:
+ *                     type: string
+ *                     example: "90001"
+ *                   state:
+ *                     type: string
+ *                     example: "California"
+ *                   stateDistrict:
+ *                     type: string
+ *                     example: "LA County"
+ *                   suburb:
+ *                     type: string
+ *                     example: "Downtown"
+ *                   village:
+ *                     type: string
+ *                     example: "N/A"
+ *       401:
+ *         description: Unauthorized request (no token provided).
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Unauthorized"
+ *       404:
+ *         description: User not found based on the provided token.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "User not found"
+ *       403:
+ *         description: Invalid or expired token.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Invalid token"
+ *     tags:
+ *       - Authentication
+ */
+
 import express from "express";
 import UserModel from "../model/userModel.mjs";
 import verifySession from "../middlewares/verifySession.mjs";
@@ -11,7 +99,7 @@ router.get("/api/get-session-data", verifySession, async (req, res) => {
     const token = res.locals.token;
 
     if (!token) {
-      return res.status(200).json({ message: "Unauthorized" });
+      return res.status(401).json({ message: "Unauthorized" });
     }
 
     // Verify the token
