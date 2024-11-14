@@ -92,27 +92,6 @@ if (cluster.isPrimary) {
   });
 } else {
   const app = express();
-  app.use((req, res, next) => {
-    // Redirect HTTP to HTTPS
-    if (req.headers["x-forwarded-proto"] !== "https") {
-      return res.redirect(301, `https://${req.headers.host}${req.url}`);
-    }
-    next();
-  });
-
-  // Apply HSTS header only over HTTPS
-  app.use((req, res, next) => {
-    if (req.secure) {
-      // Only apply HSTS if the request is secure
-      helmet.hsts({
-        maxAge: 31536000, // 1 year in seconds
-        includeSubDomains: true,
-        preload: true,
-      })(req, res, next);
-    } else {
-      next();
-    }
-  });
 
   app.use(bodyParser.json({ limit: "100mb" }));
   app.use(express.json());
