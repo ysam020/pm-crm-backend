@@ -7,6 +7,7 @@
     "routes",
     "model",
     "middlewares",
+    "templates",
     "utils",
     ".env",
     "logger.js",

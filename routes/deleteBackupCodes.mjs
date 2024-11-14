@@ -4,8 +4,6 @@
  *   delete:
  *     summary: Delete backup codes
  *     description: Deletes all backup codes associated with user.
- *     security:
- *       - bearerAuth: []  # This requires a valid JWT token
  *     responses:
  *       200:
  *         description: Backup codes deleted successfully

@@ -1,6 +1,6 @@
 /**
  * @swagger
- * /api/forgot-password:
+ * /api/send-forgot-password-otp:
  *   post:
  *     summary: Request password reset OTP
  *     description: Sends a one-time password (OTP) to the user's email for password reset. The OTP is valid for 5 minutes.
@@ -60,9 +60,10 @@
  */
 
 import express from "express";
-import { SESClient, SendEmailCommand } from "@aws-sdk/client-ses"; // Using SES from AWS SDK v3
+import { SESClient, SendEmailCommand } from "@aws-sdk/client-ses";
 import User from "../model/userModel.mjs";
 import aesEncrypt from "../utils/aesEncrypt.mjs";
+import { forgotPasswordTemplate } from "../templates/forgotPasswordTemplate.mjs";
 
 // Configure AWS SES client (SDK v3)
 const sesClient = new SESClient({
@@ -75,7 +76,7 @@ const sesClient = new SESClient({
 
 const router = express.Router();
 
-router.post("/api/forgot-password", async (req, res) => {
+router.post("/api/send-forgot-password-otp", async (req, res) => {
   try {
     const { username } = req.body;
 
@@ -98,20 +99,17 @@ router.post("/api/forgot-password", async (req, res) => {
     await user.save();
 
     // Set up the email parameters
+    const html = forgotPasswordTemplate(user.username, otp);
     const params = {
-      Source: process.env.EMAIL_FROM, // The sender email address
+      Source: process.env.EMAIL_FROM,
       Destination: {
-        ToAddresses: [user.email], // Recipient email address
+        ToAddresses: [user.email],
       },
       Message: {
         Subject: { Data: "Password Reset OTP" },
         Body: {
           Html: {
-            Data: `You are receiving this because you have requested the reset of the password for your account.
-              <br /><br />
-              Your OTP is: <strong>${otp}</strong>
-              <br /><br />
-              This OTP is valid for 5 minutes. Please do not share it with anyone.`,
+            Data: html,
           },
         },
       },

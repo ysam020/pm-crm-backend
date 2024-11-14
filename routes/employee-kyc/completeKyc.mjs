@@ -25,7 +25,7 @@ router.post("/api/complete-kyc", verifySession, async (req, res) => {
 
     res.send({ message: "Successfully completed KYC" });
   } catch (error) {
-    console.log(error);
+    console.error(error);
     res.status(500).send("An error occurred while updating the user data");
   }
 });

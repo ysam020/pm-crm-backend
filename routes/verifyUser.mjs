@@ -144,7 +144,7 @@ router.get("/api/verify-user", verifySession, async (req, res) => {
 
     res.status(200).json({ user: userWithSessionID });
   } catch (err) {
-    console.log(err);
+    console.error(err);
     res.status(403).json({ message: "Invalid token" });
   }
 });

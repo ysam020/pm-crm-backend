@@ -12,7 +12,7 @@ router.get("/api/view-onboardings", verifySession, async (req, res) => {
     );
     res.send(users.reverse()); // Reverse the array to have the last item at the top
   } catch (error) {
-    console.log(error);
+    console.error(error);
     res.status(500).send({ error: "An error occurred while fetching users." });
   }
 });

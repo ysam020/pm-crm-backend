@@ -115,7 +115,7 @@ router.put("/api/assign-modules", verifySession, async (req, res) => {
     user.modules = [...new Set([...user.modules, ...modules])];
 
     await user.save();
-
+    console.log(user.modules);
     // Ensure the user has FCM tokens
     if (!user.fcmTokens || user.fcmTokens.length === 0) {
       return res.status(400).send({ message: "User has no FCM tokens" });
@@ -149,7 +149,7 @@ router.put("/api/assign-modules", verifySession, async (req, res) => {
     // Optionally handle responses and log success/errors
     const failedTokens = responses.filter((resp) => resp.error);
     if (failedTokens.length > 0) {
-      console.log("Failed to send notifications for tokens:", failedTokens);
+      console.error("Failed to send notifications for tokens:", failedTokens);
     }
     res.status(200).send({ message: "Notification sent successfully" });
   } catch (error) {

@@ -62,7 +62,7 @@ router.delete(
       await user.save();
       res.status(200).send({ message: "Push notification disabled" });
     } catch (err) {
-      console.log(err);
+      console.error(err);
       res.status(500).send({ message: "Failed to disable push notifications" });
     }
   }

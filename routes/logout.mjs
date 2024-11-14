@@ -55,15 +55,14 @@ import express from "express";
 import jwt from "jsonwebtoken";
 import UserModel from "../model/userModel.mjs";
 import dotenv from "dotenv";
-import verifySession from "../middlewares/verifySession.mjs";
 
 dotenv.config();
 
 const router = express.Router();
 
-router.get("/api/logout", verifySession, async (req, res) => {
+router.get("/api/logout", async (req, res) => {
   try {
-    const token = res.locals.token;
+    const token = req.cookies.token;
 
     if (!token) {
       return res

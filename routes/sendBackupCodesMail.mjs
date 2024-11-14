@@ -47,6 +47,7 @@ import { SESClient, SendRawEmailCommand } from "@aws-sdk/client-ses";
 import { Buffer } from "buffer";
 import verifySession from "../middlewares/verifySession.mjs";
 import aesDecrypt from "../utils/aesDecrypt.mjs";
+import { backupCodesTemplate } from "../templates/backupCodesTemplate.mjs";
 
 dotenv.config();
 const router = express.Router();
@@ -113,13 +114,11 @@ router.get("/api/send-backup-codes-email", verifySession, async (req, res) => {
     const csvBuffer = Buffer.from(csv);
 
     // Prepare the email body
-    const bodyHtml = `
-      <p>Dear ${[user.first_name, user.middle_name, user.last_name]
+    const bodyHtml = backupCodesTemplate(
+      [user.first_name, user.middle_name, user.last_name]
         .filter(Boolean)
-        .join(" ")},</p>
-      <p>Please find the backup codes below for your Paymaster account.</p>
-      <p>Best regards,<br />Your Paymaster Team</p>
-    `;
+        .join(" ")
+    );
 
     // Create the MIME email with the attachment
     const rawEmail = createMimeEmail(
@@ -137,8 +136,12 @@ router.get("/api/send-backup-codes-email", verifySession, async (req, res) => {
       },
     };
 
-    const command = new SendRawEmailCommand(params);
-    await sesClient.send(command);
+    const sendEmailCommand = new SendRawEmailCommand(params);
+    try {
+      await sesClient.send(sendEmailCommand);
+    } catch (err) {
+      console.error("Error sending email:", err);
+    }
 
     res.status(200).json({ message: "Email sent successfully!" });
   } catch (error) {

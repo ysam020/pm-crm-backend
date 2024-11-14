@@ -3,7 +3,8 @@ import bcrypt from "bcrypt";
 import UserModel from "../../model/userModel.mjs";
 import verifySession from "../../middlewares/verifySession.mjs";
 import dotenv from "dotenv";
-import { SESClient, SendEmailCommand } from "@aws-sdk/client-ses"; // AWS SDK v3
+import { SESClient, SendEmailCommand } from "@aws-sdk/client-ses";
+import { onboardingTemplate } from "../../templates/onboardingTemplate.mjs";
 
 dotenv.config();
 
@@ -57,24 +58,12 @@ router.post("/api/onboard-employee", verifySession, async (req, res) => {
 
     await newUser.save();
 
-    // Prepare the email content (raw HTML)
-    const emailBody = `
-      <p>Dear ${first_name.toUpperCase()},</p>
-      <p>Congratulations on your new role!</p>
-      <p>We are pleased to have you join us and look forward to the positive impact you will bring to our team. Enclosed are your onboarding details and some resources to help you get started.</p>
-      <ul>
-        <li>Username: ${username}</li>
-        <li>Password: ${password}</li>
-        <li>URL: ${CLIENT_URI}</li>
-      </ul>
-      <p>Should you have any questions, please don't hesitate to ask.</p>
-      <p>Welcome aboard!</p>
-      <br />
-      <p>Warm regards,</p>
-      <p>Shalini Arun<br />HR & Admin<br />Suraj Forwarders Private Limited</p>
-      <br />
-      <img src="https://alvision-images.s3.ap-south-1.amazonaws.com/Shalini+Mam.jpg" alt="Email Signature" style="max-width: 100%; height: auto;" />
-    `;
+    const html = onboardingTemplate(
+      first_name.toUpperCase(),
+      username,
+      password,
+      CLIENT_URI
+    );
 
     // Prepare SES email parameters
     const params = {
@@ -88,7 +77,7 @@ router.post("/api/onboard-employee", verifySession, async (req, res) => {
         },
         Body: {
           Html: {
-            Data: emailBody, // HTML formatted body
+            Data: html,
           },
         },
       },
@@ -98,7 +87,6 @@ router.post("/api/onboard-employee", verifySession, async (req, res) => {
     const command = new SendEmailCommand(params);
     await sesClient.send(command);
 
-    console.log("Message sent");
     res.status(201).send({ message: "User onboarded successfully" });
   } catch (error) {
     console.error("Error onboarding user:", error);

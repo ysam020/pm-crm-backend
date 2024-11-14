@@ -46,11 +46,9 @@ schedule.scheduleJob("0 0 * * *", async () => {
           $unset: { blockedUntil: 1, firstFailedLoginAt: 1 },
         }
       );
-    } else {
-      console.log("No users to unblock.");
     }
   } catch (err) {
-    console.log("Error unblocking users: ", err);
+    console.error("Error unblocking users: ", err);
   }
 });
 

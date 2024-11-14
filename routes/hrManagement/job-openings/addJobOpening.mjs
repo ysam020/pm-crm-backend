@@ -119,7 +119,7 @@ router.post("/api/add-job-opening", verifySession, async (req, res) => {
       message: "Job opening created successfully",
     });
   } catch (error) {
-    res.status(400).json({ message: "Error creating job opening" });
+    res.status(400).json({ message: "Error creating job opening:", error });
   }
 });
 

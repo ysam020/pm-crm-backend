@@ -1,141 +1,3 @@
-// /**
-//  * @swagger
-//  * /api/login:
-//  *   post:
-//  *     summary: User login
-//  *     description: Log in a user with username, password, and optional two-factor authentication or backup code.
-//  *     requestBody:
-//  *       required: true
-//  *       content:
-//  *         application/json:
-//  *           schema:
-//  *             type: object
-//  *             properties:
-//  *               username:
-//  *                 type: string
-//  *                 example: "user_name"
-//  *               password:
-//  *                 type: string
-//  *                 example: "1234"
-//  *               twoFAToken:
-//  *                 type: string
-//  *                 example: "123456"
-//  *               backupCode:
-//  *                 type: string
-//  *                 example: "12345678"
-//  *               userAgent:
-//  *                 type: string
-//  *                 example: "Mozilla/5.0"
-//  *               geolocation:
-//  *                 type: object
-//  *                 properties:
-//  *                   latitude:
-//  *                     type: number
-//  *                     example: 37.7749
-//  *                   longitude:
-//  *                     type: number
-//  *                     example: -122.4194
-//  *                   ipAddress:
-//  *                     type: string
-//  *                     example: "192.168.1.1"
-//  *               isTwoFactorEnabled:
-//  *                 type: boolean
-//  *                 example: false
-//  *               useBackupCode:
-//  *                 type: boolean
-//  *                 example: false
-//  *     responses:
-//  *       200:
-//  *         description: Login successful or with messages on unsuccessful attempts
-//  *         content:
-//  *           application/json:
-//  *             schema:
-//  *               type: object
-//  *               properties:
-//  *                 message:
-//  *                   type: string
-//  *                   example: "Login successful"
-//  *                 user:
-//  *                   type: object
-//  *                   properties:
-//  *                     username:
-//  *                       type: string
-//  *                       example: "user_name"
-//  *                     role:
-//  *                       type: string
-//  *                       example: "admin"
-//  *                     first_name:
-//  *                       type: string
-//  *                       example: "John"
-//  *                     middle_name:
-//  *                       type: string
-//  *                       example: "A."
-//  *                     last_name:
-//  *                       type: string
-//  *                       example: "Doe"
-//  *                     employee_photo:
-//  *                       type: string
-//  *                       example: "url_to_photo"
-//  *                     email:
-//  *                       type: string
-//  *                       example: "user@example.com"
-//  *                     modules:
-//  *                       type: array
-//  *                       items:
-//  *                         type: string
-//  *                         example: "dashboard"
-//  *                     sessionID:
-//  *                       type: string
-//  *                       example: "jwt_token_here"
-//  *                 unblockTime:
-//  *                   type: string
-//  *                   example: "2024-12-01T23:59:59.000Z"
-//  *       400:
-//  *         description: Bad Request - missing required fields or invalid data
-//  *       401:
-//  *         description: Unauthorized
-//  *         content:
-//  *           application/json:
-//  *             schema:
-//  *               type: object
-//  *               properties:
-//  *                 message:
-//  *                   type: string
-//  *                   example: "Invalid 2FA token"
-//  *       403:
-//  *         description: Account blocked
-//  *         content:
-//  *           application/json:
-//  *             schema:
-//  *               type: object
-//  *               properties:
-//  *                 message:
-//  *                   type: string
-//  *                   example: "Account blocked until 2023-12-31T23:59:59.000Z. You can try resetting your password."
-//  *       404:
-//  *         description: User not registered
-//  *         content:
-//  *           application/json:
-//  *             schema:
-//  *               type: object
-//  *               properties:
-//  *                 message:
-//  *                   type: string
-//  *                   example: "User not registered"
-//  *       500:
-//  *         description: Internal Server Error
-//  *         content:
-//  *           application/json:
-//  *             schema:
-//  *               type: object
-//  *               properties:
-//  *                 message:
-//  *                   type: string
-//  *                   example: "Something went wrong"
-//  *     tags:
-//  *       - Authentication
-//  */
-
 /**
  * @swagger
  * /api/login:
@@ -300,8 +162,9 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import UserModel from "../model/userModel.mjs";
 import speakeasy from "speakeasy";
-import { SESClient, SendEmailCommand } from "@aws-sdk/client-ses"; // Import SES client from AWS SDK v3
+import { SESClient, SendEmailCommand } from "@aws-sdk/client-ses";
 import aesDecrypt from "../utils/aesDecrypt.mjs";
+import { loginAlertTemplate } from "../templates/loginAlertTemplate.mjs";
 
 // Configure AWS SES client (SDK v3)
 const sesClient = new SESClient({
@@ -378,6 +241,8 @@ router.post("/api/login", async (req, res) => {
         } else {
           responseMessage += ` You have ${attemptsLeft} attempts left before your account is blocked.`;
 
+          const html = loginAlertTemplate(user.username);
+
           // Send warning email using SES
           const params = {
             Source: process.env.EMAIL_FROM, // The sender email address
@@ -388,7 +253,7 @@ router.post("/api/login", async (req, res) => {
               Subject: { Data: "Login Attempt Warning" },
               Body: {
                 Html: {
-                  Data: `<p>Dear ${user.username},</p><p>There has been a failed login attempt on your account. If this was not you, please <strong>change your password</strong> immediately.</p>`,
+                  Data: html,
                 },
               },
             },
@@ -397,7 +262,6 @@ router.post("/api/login", async (req, res) => {
           const sendEmailCommand = new SendEmailCommand(params);
           try {
             await sesClient.send(sendEmailCommand);
-            console.log("Warning email sent successfully.");
           } catch (err) {
             console.error("Error sending email:", err);
           }
