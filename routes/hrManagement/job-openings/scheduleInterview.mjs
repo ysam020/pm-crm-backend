@@ -64,139 +64,12 @@
  *       - Job Applications
  */
 
-// import { SESClient, SendRawEmailCommand } from "@aws-sdk/client-ses";
-// import express from "express";
-// import JobApplicationModel from "../../../model/jobApplicationModel.mjs";
-// import verifySession from "../../../middlewares/verifySession.mjs";
-// import { Buffer } from "buffer";
-// import { interviewTemplate } from "../../../templates/interviewTemplate.mjs";
-
-// const router = express.Router();
-
-// // Configure AWS SES Client
-// const sesClient = new SESClient({
-//   region: process.env.REGION, // e.g., "ap-south-1"
-//   credentials: {
-//     accessKeyId: process.env.ACCESS_KEY,
-//     secretAccessKey: process.env.SECRET_ACCESS_KEY,
-//   },
-// });
-
-// router.put("/api/schedule-interview", verifySession, async (req, res) => {
-//   try {
-//     const {
-//       jobTitle,
-//       name,
-//       email,
-//       interviewDateTime,
-//       interviewStartTime,
-//       interviewEndTime,
-//     } = req.body;
-
-//     const application = await JobApplicationModel.findOne({
-//       jobTitle,
-//       email,
-//     });
-
-//     if (!application) {
-//       return res.status(404).json({ message: "Application not found" });
-//     }
-
-//     application.interviewDate = interviewDateTime;
-//     await application.save();
-
-//     // Prepare Calendar Event (ICS content)
-//     const icsContent = `BEGIN:VCALENDAR\r
-// VERSION:2.0\r
-// CALSCALE:GREGORIAN\r
-// BEGIN:VEVENT\r
-// SUMMARY:Interview for ${jobTitle}\r
-// DTSTART;TZID=Asia/Kolkata:${interviewStartTime}\r
-// DTEND;TZID=Asia/Kolkata:${interviewEndTime}\r
-// LOCATION:Paymaster Management Solutions, 2nd Floor, Maradia Plaza, CG Road, Ahmedabad, Gujarat, 380006\r
-// DESCRIPTION:Interview for ${jobTitle}\r
-// STATUS:CONFIRMED\r
-// SEQUENCE:0\r
-// BEGIN:VALARM\r
-// TRIGGER:-PT1H\r
-// DESCRIPTION:Interview Reminder\r
-// ACTION:DISPLAY\r
-// END:VALARM\r
-// END:VEVENT\r
-// END:VCALENDAR`;
-
-//     // Encode ICS content in Base64
-//     const icsBase64 = Buffer.from(icsContent, "utf-8").toString("base64");
-
-//     // Define MIME boundary
-//     const mimeBoundary = "NextPart";
-
-//     // Use the email template in the MIME message
-//     const htmlEmailContent = interviewTemplate(
-//       jobTitle,
-//       interviewDateTime,
-//       name
-//     );
-
-//     // Construct MIME message
-//     const mimeMessage = [
-//       `From: ${process.env.EMAIL_FROM}`,
-//       `To: ${email}`,
-//       `Subject: Paymaster Interview Scheduled for ${jobTitle}`,
-//       "MIME-Version: 1.0",
-//       `Content-Type: multipart/mixed; boundary="${mimeBoundary}"`,
-//       "",
-//       `--${mimeBoundary}`,
-//       "Content-Type: text/html; charset=UTF-8",
-//       "",
-//       htmlEmailContent,
-//       "",
-//       `--${mimeBoundary}`,
-//       "Content-Type: text/calendar; charset=UTF-8; method=REQUEST",
-//       "Content-Transfer-Encoding: base64",
-//       'Content-Disposition: attachment; filename="interview.ics"',
-//       "",
-//       `${icsBase64}`,
-//       "",
-//       `--${mimeBoundary}--`,
-//       "",
-//     ].join("\r\n");
-
-//     // Set up email parameters
-//     const emailParams = {
-//       Source: process.env.EMAIL_FROM,
-//       Destinations: [email],
-//       RawMessage: {
-//         Data: Buffer.from(mimeMessage),
-//       },
-//     };
-
-//     // Send email
-//     const command = new SendRawEmailCommand(emailParams);
-//     const response = await sesClient.send(command);
-
-//     res.status(200).json({
-//       message: "Interview scheduled and email sent",
-//       messageId: response.MessageId,
-//     });
-//   } catch (err) {
-//     console.error("Error:", err);
-//     res.status(500).json({ message: "Failed to schedule interview" });
-//   }
-// });
-
-// export default router;
-
 import express from "express";
-import jwt from "jsonwebtoken";
-import UserModel from "../../../model/userModel.mjs";
-import dotenv from "dotenv";
-import { SESClient, SendRawEmailCommand } from "@aws-sdk/client-ses";
-import { Buffer } from "buffer";
+import JobApplicationModel from "../../../model/jobApplicationModel.mjs";
 import verifySession from "../../../middlewares/verifySession.mjs";
-import aesDecrypt from "../../../utils/aesDecrypt.mjs";
+import { SESClient, SendEmailCommand } from "@aws-sdk/client-ses"; // AWS SDK v3
+import { Buffer } from "buffer";
 
-dotenv.config();
 const router = express.Router();
 
 // Configure AWS SES Client
@@ -208,96 +81,93 @@ const sesClient = new SESClient({
   },
 });
 
-// Helper function to create a MIME formatted email with CSV attachment
-const createMimeEmail = (from, to, subject, bodyHtml, attachment) => {
-  const boundary = "----=_Part_0_1234567890.0987654321";
-
-  const emailBody = [
-    `MIME-Version: 1.0`,
-    `Content-Type: multipart/mixed; boundary="${boundary}"`,
-    `From: ${from}`,
-    `To: ${to}`,
-    `Subject: ${subject}`,
-    "",
-    `--${boundary}`,
-    `Content-Type: text/html; charset=UTF-8`,
-    `Content-Transfer-Encoding: 7bit`,
-    "",
-    bodyHtml,
-    `--${boundary}`,
-    `Content-Type: text/csv; name="backup_codes.csv"`,
-    `Content-Transfer-Encoding: base64`,
-    `Content-Disposition: attachment; filename="backup_codes.csv"`,
-    "",
-    attachment.toString("base64"),
-    `--${boundary}--`,
-  ].join("\n");
-
-  return emailBody;
-};
-
-// Route to send backup codes via email
-router.get("/api/send-backup-codes-email", verifySession, async (req, res) => {
+router.put("/api/schedule-interview", verifySession, async (req, res) => {
   try {
-    const token = res.locals.token;
-    // Decode JWT to extract username
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const username = decoded.username;
+    const {
+      jobTitle,
+      email,
+      interviewDateTime,
+      interviewStartTime,
+      interviewEndTime,
+    } = req.body;
 
-    // Find the user in the database
-    const user = await UserModel.findOne({ username });
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
+    const application = await JobApplicationModel.findOne({
+      jobTitle,
+      email,
+    });
+
+    if (!application) {
+      return res.status(404).json({ message: "Application not found" });
     }
 
-    // Create CSV formatted string for backup codes
-    const header = "Backup Codes\n";
-    const csvContent = user.backupCodes
-      .map((code) => `${aesDecrypt(code)}`)
-      .join("\n");
-    const csv = header + csvContent;
+    application.interviewDate = interviewDateTime;
+    await application.save();
 
-    // Create a buffer from the CSV content
-    const csvBuffer = Buffer.from(csv);
+    // Prepare Calendar Event (ICS content)
+    const icsContent = `
+    BEGIN:VCALENDAR
+    VERSION:2.0
+    CALSCALE:GREGORIAN
+    BEGIN:VEVENT
+    SUMMARY:Paymaster Interview
+    DTSTART;TZID=Asia/Kolkata:${interviewStartTime}
+    DTEND;TZID=Asia/Kolkata:${interviewEndTime}
+    LOCATION:Paymaster Management Solutions, 2nd Floor, Maradia Plaza, CG Road, Ahmedabad, Gujarat, 380006
+    DESCRIPTION:Paymaster Interview
+    STATUS:CONFIRMED
+    SEQUENCE:0
+    BEGIN:VALARM
+    TRIGGER:-PT1H
+    DESCRIPTION:Paymaster Interview Reminder
+    ACTION:DISPLAY
+    END:VALARM
+    END:VEVENT
+    END:VCALENDAR`;
 
-    // Prepare the email body
-    const bodyHtml = `
-      <p>Dear ${[user.first_name, user.middle_name, user.last_name]
-        .filter(Boolean)
-        .join(" ")},</p>
-      <p>Please find attached the backup codes below for your Paymaster account.</p>
-      <p>Best regards,
-      <br />
-      Your Paymaster Team
-      </p>
-    `;
+    // Create ICS file from the calendar event content
+    const icsBuffer = Buffer.from(icsContent, "utf-8");
 
-    // Create the MIME email with the attachment
-    const rawEmail = createMimeEmail(
-      process.env.EMAIL_FROM, // From email address
-      user.email, // To email address
-      "Paymaster Backup Codes", // Subject
-      bodyHtml, // HTML Body
-      csvBuffer // Attachment
-    );
-
-    // Send the email using AWS SES
-    const params = {
-      RawMessage: {
-        Data: rawEmail,
+    // Prepare email parameters for AWS SES
+    const emailParams = {
+      Source: process.env.EMAIL_FROM, // Make sure this email is verified in SES
+      Destination: {
+        ToAddresses: [email], // The candidate's email address
       },
+      Message: {
+        Subject: {
+          Data: `Interview Scheduled for ${jobTitle}`,
+        },
+        Body: {
+          Html: {
+            Data: `
+              <p>Dear candidate,</p>
+              <p>Your interview for the position of <strong>${jobTitle}</strong> is scheduled for <strong>${new Date(
+              interviewDateTime
+            ).toLocaleString()}</strong>.</p>
+              <p>Please find the details in the attached calendar invite.</p>
+              <br />
+              <p>Best regards,<br />Your HR Team</p>
+            `,
+          },
+        },
+      },
+      Attachments: [
+        {
+          Filename: "interview.ics",
+          Data: icsBuffer,
+          ContentType: "text/calendar",
+        },
+      ],
     };
 
-    const sendEmailCommand = new SendRawEmailCommand(params);
-    try {
-      await sesClient.send(sendEmailCommand);
-    } catch (err) {
-      console.error("Error sending email:", err);
-    }
-    res.status(200).json({ message: "Email sent successfully!" });
-  } catch (error) {
-    console.error("Error sending email:", error);
-    res.status(500).json({ message: "Failed to send email" });
+    // Send the email using AWS SES
+    const sendEmailCommand = new SendEmailCommand(emailParams);
+    await sesClient.send(sendEmailCommand);
+
+    res.status(200).json({ message: "Interview scheduled" });
+  } catch (err) {
+    console.error("Error:", err);
+    res.status(500).json({ message: "Failed to schedule interview" });
   }
 });
 

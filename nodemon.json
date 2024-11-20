@@ -10,7 +10,7 @@
     "templates",
     "utils",
     ".env",
-    "logger.js",
+    "logger.mjs",
     "swaggerConfig.js"
   ],
   "ext": "js,json,mjs",

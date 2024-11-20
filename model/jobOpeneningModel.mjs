@@ -7,6 +7,9 @@ const jobOpeningSchema = new Schema({
     type: String,
     required: true,
   },
+  numberOfVacancies: {
+    type: Number,
+  },
   jobPostingDate: {
     type: Date,
     required: true,
@@ -35,10 +38,8 @@ const jobOpeningSchema = new Schema({
     required: true,
     min: [0, "Experience must be a non-negative number"],
   },
-  employmentType: {
+  location: {
     type: String,
-    required: true,
-    enum: ["Full-Time", "Part-Time", "Contract", "Temporary"],
   },
   budget: {
     type: [Number],
@@ -53,6 +54,10 @@ const jobOpeningSchema = new Schema({
   hiringManager: {
     type: String,
     required: true,
+  },
+  candidatesHired: {
+    type: Number,
+    default: 0,
   },
 });
 

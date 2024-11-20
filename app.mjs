@@ -54,8 +54,13 @@ import applyForJob from "./routes/hrManagement/job-openings/applyForJob.mjs";
 import getJobTitles from "./routes/hrManagement/job-openings/getJobTitles.mjs";
 import viewJobOpening from "./routes/hrManagement/job-openings/viewJobOpening.mjs";
 import viewApplications from "./routes/hrManagement/job-openings/viewApplications.mjs";
+import hireCandidate from "./routes/hrManagement/job-openings/hireCandidate.mjs";
 import rejectApplication from "./routes/hrManagement/job-openings/rejectApplication.mjs";
 import scheduleInterview from "./routes/hrManagement/job-openings/scheduleInterview.mjs";
+// Attendance and Leaves
+import addAttendance from "./routes/hrManagement/attendanceAndLeaves/addAttendance.mjs";
+import getAttendances from "./routes/hrManagement/attendanceAndLeaves/getAttendances.mjs";
+import addLeave from "./routes/hrManagement/attendanceAndLeaves/addLeave.mjs";
 
 // Employee KYC
 import completeKyc from "./routes/employee-kyc/completeKyc.mjs";
@@ -92,7 +97,7 @@ if (cluster.isPrimary) {
   });
 } else {
   const app = express();
-
+  app.use(helmet());
   app.use(bodyParser.json({ limit: "100mb" }));
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
@@ -176,8 +181,13 @@ if (cluster.isPrimary) {
       app.use(getJobTitles);
       app.use(viewJobOpening);
       app.use(viewApplications);
+      app.use(hireCandidate);
       app.use(rejectApplication);
       app.use(scheduleInterview);
+      // Attendance and Leaves
+      app.use(addAttendance);
+      app.use(getAttendances);
+      app.use(addLeave);
 
       // Employee KYC
       app.use(completeKyc);

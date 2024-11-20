@@ -101,12 +101,13 @@ router.post("/api/add-job-opening", verifySession, async (req, res) => {
     // Create a new job opening instance
     const newJobOpening = new JobOpeningModel({
       jobTitle: req.body.jobTitle,
+      numberOfVacancies: req.body.numberOfVacancies,
       jobPostingDate: req.body.jobPostingDate,
       applicationDeadline: req.body.applicationDeadline,
       jobDescription: req.body.jobDescription,
       requiredSkills: req.body.requiredSkills,
       experience: req.body.experience,
-      employmentType: req.body.employmentType,
+      location: req.body.location,
       budget: req.body.budget,
       hiringManager: req.body.hiringManager,
     });

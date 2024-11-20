@@ -152,6 +152,17 @@ const userSchema = new Schema(
     pan_photo: {
       type: String,
     },
+    education_certificates: [
+      {
+        type: String,
+      },
+    ],
+    experience_certificate: {
+      type: String,
+    },
+    electricity_bill: {
+      type: String,
+    },
     pf_no: {
       type: String,
     },
