@@ -47,6 +47,17 @@ import saveFcmToken from "./routes/push-notifications/saveFcmToken.mjs";
 import disablePushNotifications from "./routes/push-notifications/disablePushNotifications.mjs";
 
 // HR & Management
+import getEvents from "./routes/hrManagement/getEvents.mjs";
+import getNotifications from "./routes/hrManagement/getNotifications.mjs";
+// Appraisal
+import addAppraisal from "./routes/hrManagement/appraisal/addAppraisal.mjs";
+import viewAppraisals from "./routes/hrManagement/appraisal/viewAppraisals.mjs";
+// Training
+import addTraining from "./routes/hrManagement/training/addTraining.mjs";
+import viewTrainings from "./routes/hrManagement/training/viewTrainings.mjs";
+// HR Activities
+import addHrActivity from "./routes/hrManagement/hrActivities/addHrActivity.mjs";
+import getHrActivities from "./routes/hrManagement/hrActivities/getHrActivities.mjs";
 // Job Openings
 import addJobOpening from "./routes/hrManagement/job-openings/addJobOpening.mjs";
 import viewJobOpenings from "./routes/hrManagement/job-openings/viewJobOpenings.mjs";
@@ -61,6 +72,9 @@ import scheduleInterview from "./routes/hrManagement/job-openings/scheduleInterv
 import addAttendance from "./routes/hrManagement/attendanceAndLeaves/addAttendance.mjs";
 import getAttendances from "./routes/hrManagement/attendanceAndLeaves/getAttendances.mjs";
 import addLeave from "./routes/hrManagement/attendanceAndLeaves/addLeave.mjs";
+import getLeaveApplications from "./routes/hrManagement/attendanceAndLeaves/getLeaveApplications.mjs";
+import approveLeave from "./routes/hrManagement/attendanceAndLeaves/approveLeave.mjs";
+import getAllAttendances from "./routes/hrManagement/attendanceAndLeaves/getAllAttendances.mjs";
 
 // Employee KYC
 import completeKyc from "./routes/employee-kyc/completeKyc.mjs";
@@ -174,6 +188,17 @@ if (cluster.isPrimary) {
       app.use(disablePushNotifications);
 
       // HR & Management
+      app.use(getEvents);
+      app.use(getNotifications);
+      // Appraisal
+      app.use(addAppraisal);
+      app.use(viewAppraisals);
+      // Training
+      app.use(addTraining);
+      app.use(viewTrainings);
+      // HR Activities
+      app.use(addHrActivity);
+      app.use(getHrActivities);
       // Job Openings
       app.use(addJobOpening);
       app.use(viewJobOpenings);
@@ -188,6 +213,9 @@ if (cluster.isPrimary) {
       app.use(addAttendance);
       app.use(getAttendances);
       app.use(addLeave);
+      app.use(getLeaveApplications);
+      app.use(approveLeave);
+      app.use(getAllAttendances);
 
       // Employee KYC
       app.use(completeKyc);

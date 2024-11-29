@@ -37,6 +37,69 @@ const CredentialSchema = new mongoose.Schema({
   },
 });
 
+// Appraisal schema
+const appraisalSchema = new Schema({
+  appraisalDate: { type: String },
+  performanceScore: { type: Number },
+  strengths: { type: String },
+  areasOfImprovement: { type: String },
+  feedback: { type: String },
+});
+
+// Training schema
+const trainingSchema = new Schema({
+  trainingProgram: {
+    type: String,
+  },
+  trainingDate: {
+    type: String,
+  },
+  duration: {
+    type: String,
+  },
+  trainingProvider: {
+    type: String,
+  },
+  feedback: {
+    type: String,
+  },
+});
+
+// Leave schema
+const leaveSchema = new Schema({
+  month_year: {
+    type: String,
+  },
+  leaves: [
+    {
+      from: {
+        type: Date,
+      },
+      to: {
+        type: Date,
+      },
+      reason: {
+        type: String,
+      },
+      sick_leave: {
+        type: Boolean,
+      },
+      medical_certificate: {
+        type: String,
+      },
+      paidLeaves: {
+        type: Number,
+      },
+      unpaidLeaves: {
+        type: Number,
+      },
+      status: {
+        type: String,
+      },
+    },
+  ],
+});
+
 // User schema
 const userSchema = new Schema(
   {
@@ -49,7 +112,7 @@ const userSchema = new Schema(
       type: String,
       required: true,
     },
-    role: { type: String },
+    rank: { type: Number },
     modules: [
       {
         type: String,
@@ -187,6 +250,13 @@ const userSchema = new Schema(
     kyc_approval: {
       type: String,
     },
+    // Module fields
+    appraisals: [appraisalSchema],
+    trainings: [trainingSchema],
+    totalPaidLeaves: {
+      type: Number,
+    },
+    leaves: [leaveSchema],
     // Password reset fields
     resetPasswordOTP: {
       type: String,

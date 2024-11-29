@@ -1,0 +1,22 @@
+import express from "express";
+import UserModel from "../../../model/userModel.mjs";
+
+const router = express.Router();
+
+router.get("/api/view-trainings/:username", async (req, res) => {
+  try {
+    const { username } = req.params;
+    const user = await UserModel.findOne({ username });
+
+    if (!user) {
+      return res.status(404).send("User not found");
+    }
+
+    res.status(200).send(user.trainings);
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("Internal Server Error");
+  }
+});
+
+export default router;

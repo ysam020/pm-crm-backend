@@ -127,7 +127,7 @@ router.put("/api/assign-modules", verifySession, async (req, res) => {
         title: `Notification from ${assignee}`,
         body: `Module assigned: ${modules.join(", ")}`,
         image:
-          "https://d1mfah44qwue3n.cloudfront.net/kyc/personal.webp/favicon.png",
+          "https://paymaster-document.s3.ap-south-1.amazonaws.com/kyc/personal.webp/favicon.png",
       },
       data: {
         LinkUrl: "http://localhost:3000",

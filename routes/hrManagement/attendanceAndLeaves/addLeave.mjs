@@ -1,5 +1,5 @@
 import express from "express";
-import leaveModel from "../../../model/leaveModel.mjs";
+import UserModel from "../../../model/userModel.mjs";
 import verifySession from "../../../middlewares/verifySession.mjs";
 import jwt from "jsonwebtoken";
 
@@ -11,99 +11,147 @@ router.post("/api/add-leave", verifySession, async (req, res) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const username = decoded.username;
 
-    const { from, to, reason, medical_certificate } = req.body;
+    const { from, to, reason, sick_leave, medical_certificate } = req.body;
 
-    // Parse the dates
-    const fromDate = new Date(from);
-    const toDate = new Date(to);
+    const startDate = new Date(from);
+    const endDate = new Date(to);
 
-    // Calculate the number of leave days (inclusive of both dates)
-    const leaveDays =
-      Math.ceil((toDate - fromDate) / (1000 * 60 * 60 * 24)) + 1;
+    let userLeave = await UserModel.findOne({ username });
 
-    if (leaveDays <= 0) {
-      return res.status(400).send({ message: "Invalid date range." });
-    }
+    const currentMonth = new Date().getMonth(); // Current month (0-11)
+    const monthsRemaining = 12 - currentMonth; // Remaining months in the current year
+    let remainingPaidLeaves = userLeave.totalPaidLeaves
+      ? userLeave.totalPaidLeaves
+      : monthsRemaining * 1.5; // 1.5 paid leaves for each remaining month
 
-    // Find the user in the database
-    const existingUser = await leaveModel.findOne({ username });
+    const monthEntriesToPush = [];
 
-    if (existingUser) {
-      // Calculate the updated leave balance
-      const updatedLeaveBalance = Math.max(
-        existingUser.leaveBalance - leaveDays,
-        0
+    let currentDate = new Date(startDate);
+
+    while (currentDate <= endDate) {
+      const monthYear = `${currentDate.getFullYear()}-${String(
+        currentDate.getMonth() + 1
+      ).padStart(2, "0")}`;
+
+      const nextMonth = new Date(
+        currentDate.getFullYear(),
+        currentDate.getMonth() + 1,
+        1
+      );
+      const rangeEnd = endDate < nextMonth ? endDate : new Date(nextMonth - 1);
+
+      let monthEntry = userLeave.leaves.find(
+        (entry) => entry.month_year === monthYear
       );
 
-      // If leave days exceed balance, set balance to 0 and proceed
-      if (existingUser.leaveBalance < leaveDays) {
-        await leaveModel.updateOne(
-          { username },
-          {
-            leaveBalance: 0, // Set leave balance to 0
-            $push: {
-              leave: {
-                from,
-                to,
-                reason,
-                medical_certificate: medical_certificate || null,
-              },
-            },
+      if (!monthEntry) {
+        monthEntry = { month_year: monthYear, leaves: [] };
+        monthEntriesToPush.push(monthEntry);
+      }
+
+      const existingLeave = monthEntry.leaves.find(
+        (leave) =>
+          leave.from.getTime() === currentDate.getTime() &&
+          leave.to.getTime() === rangeEnd.getTime()
+      );
+
+      if (!existingLeave) {
+        const leaveDaysInRange =
+          Math.floor((rangeEnd - currentDate) / (1000 * 60 * 60 * 24)) + 1;
+
+        let paidLeaves = 0;
+        let unpaidLeaves = 0;
+
+        if (isNaN(leaveDaysInRange) || leaveDaysInRange <= 0) {
+          throw new Error("Invalid leave duration");
+        }
+
+        // If there are no paid leaves available, all leaves are unpaid
+        if (remainingPaidLeaves === 0) {
+          paidLeaves = 0;
+          unpaidLeaves = leaveDaysInRange;
+        } else {
+          // Handle case where some paid leaves are available
+          if (currentDate.getMonth() === rangeEnd.getMonth()) {
+            // If the leave is within the same month
+            paidLeaves = Math.min(remainingPaidLeaves, leaveDaysInRange);
+            unpaidLeaves = leaveDaysInRange - paidLeaves;
+          } else {
+            const daysInCurrentMonth = new Date(
+              currentDate.getFullYear(),
+              currentDate.getMonth() + 1,
+              0
+            ).getDate();
+            const daysLeftInCurrentMonth =
+              daysInCurrentMonth - currentDate.getDate() + 1;
+
+            // Allocate paid leave for the current month
+            const paidInCurrentMonth = Math.min(
+              remainingPaidLeaves,
+              daysLeftInCurrentMonth
+            );
+            paidLeaves += paidInCurrentMonth;
+
+            const remainingLeaveDays = leaveDaysInRange - paidInCurrentMonth;
+            paidLeaves += Math.min(remainingPaidLeaves, remainingLeaveDays);
+
+            unpaidLeaves = leaveDaysInRange - paidLeaves;
           }
-        );
-        return res.status(200).send({
-          message: `Leave added successfully`,
+        }
+
+        paidLeaves = isNaN(paidLeaves) ? 0 : paidLeaves;
+        unpaidLeaves = isNaN(unpaidLeaves) ? 0 : unpaidLeaves;
+
+        remainingPaidLeaves -= paidLeaves;
+
+        // Ensure remainingPaidLeaves doesn't go negative
+        remainingPaidLeaves = Math.max(remainingPaidLeaves, 0);
+
+        const leaveEntry = {
+          from: currentDate,
+          to: rangeEnd,
+          reason,
+          sick_leave,
+          medical_certificate,
+          paidLeaves: paidLeaves,
+          unpaidLeaves: unpaidLeaves,
+          status: "Pending", // Assuming leave is pending by default
+        };
+
+        monthEntry.leaves.push(leaveEntry);
+        userLeave.markModified("leaves");
+      } else {
+        return res.status(200).json({
+          message: "Already applied for leave in this date range",
         });
       }
 
-      // Otherwise, deduct leave days normally
-      await leaveModel.updateOne(
-        { username },
-        {
-          leaveBalance: updatedLeaveBalance,
-          $push: {
-            leave: {
-              from,
-              to,
-              reason,
-              medical_certificate: medical_certificate || null,
-            },
-          },
-        }
-      );
-
-      return res.status(200).send({ message: "Leave added successfully." });
-    } else {
-      // Default leave balance for new users
-      const initialLeaveBalance = 30;
-      const newLeaveBalance = Math.max(initialLeaveBalance - leaveDays, 0);
-
-      // If leave days exceed initial balance, set balance to 0 and proceed
-      const leaveBalanceToSet =
-        initialLeaveBalance < leaveDays ? 0 : newLeaveBalance;
-
-      const newLeaveEntry = new leaveModel({
-        username,
-        leaveBalance: leaveBalanceToSet,
-        leave: [
-          {
-            from,
-            to,
-            reason,
-            medical_certificate: medical_certificate || null,
-          },
-        ],
-      });
-
-      await newLeaveEntry.save();
-
-      return res.status(200).send({
-        message: `Leave added successfully. Leave balance is now ${leaveBalanceToSet}.`,
-      });
+      currentDate = new Date(nextMonth);
     }
+
+    // Add all the new month entries to the leaves array
+    userLeave.leaves.push(...monthEntriesToPush);
+
+    // Update the user's total paid leaves after all leave entries have been processed
+    userLeave.totalPaidLeaves = remainingPaidLeaves;
+
+    // Ensure totalPaidLeaves is a valid number
+    userLeave.totalPaidLeaves = isNaN(userLeave.totalPaidLeaves)
+      ? 0
+      : userLeave.totalPaidLeaves;
+
+    // Save the updated user leave data
+    const savedUserLeave = await userLeave.save();
+
+    // Send response back to the client
+    res.status(200).json({
+      message: "Leave added successfully.",
+      totalPaidLeaves: savedUserLeave.totalPaidLeaves,
+      leaves: savedUserLeave.leaves,
+    });
   } catch (error) {
-    console.error(error);
-    res.status(500).send("Internal Server Error");
+    console.error("Error adding leave:", error);
+    res.status(500).json({ message: "Internal Server Error." });
   }
 });
 
