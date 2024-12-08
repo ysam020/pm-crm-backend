@@ -79,6 +79,7 @@ router.get("/api/view-applications/:id", verifySession, async (req, res) => {
         email: application.email,
         aadharNo: application.aadharNo,
         jobTitle: application.jobTitle,
+        resume: application.resume,
         interviewDate: application.interviewDate,
       };
     });

@@ -45,8 +45,8 @@
  *                 username:
  *                   type: string
  *                   example: "user_name"
- *                 role:
- *                   type: string
+ *                 rank:
+ *                   type: Number
  *                   example: ""
  *                 insurance_status:
  *                   type: array
@@ -101,7 +101,7 @@
  *                 dob:
  *                   type: string
  *                   example: "yyyy-mm-dd"
- *                 highest_qualification:
+ *                 qualification:
  *                   type: string
  *                   example: "Qualification"
  *                 ifsc_code:

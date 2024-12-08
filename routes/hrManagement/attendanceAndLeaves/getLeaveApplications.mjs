@@ -1,7 +1,6 @@
 import express from "express";
 import UserModel from "../../../model/userModel.mjs";
 import verifySession from "../../../middlewares/verifySession.mjs";
-import jwt from "jsonwebtoken";
 
 const router = express.Router();
 
@@ -12,20 +11,10 @@ router.get(
     const { month_year } = req.params;
 
     try {
-      const token = res.locals.token;
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      const username = decoded.username;
-
-      const user = await UserModel.findOne({ username }).select(
-        "rank department"
-      );
-
       const [year, month] = month_year.split("-").map(Number);
       const startDate = new Date(year, month - 1, 1);
 
       const leaves = await UserModel.find({
-        rank: { $gte: user.rank },
-        department: user.department,
         from: { $gte: startDate },
       });
 
@@ -42,7 +31,7 @@ router.get(
       const transformedData = leaves.flatMap((leave) =>
         leave.leaves.flatMap((monthYearLeave) =>
           monthYearLeave.leaves.map((item) => ({
-            _id: item._id, // Include the Object ID of the leave
+            _id: item._id,
             username: leave.username,
             from: formatDate(item.from),
             to: formatDate(item.to),

@@ -1,9 +1,10 @@
 import express from "express";
 import UserModel from "../../../model/userModel.mjs";
+import verifySession from "../../../middlewares/verifySession.mjs";
 
 const router = express.Router();
 
-router.get("/api/view-trainings/:username", async (req, res) => {
+router.get("/api/view-trainings/:username", verifySession, async (req, res) => {
   try {
     const { username } = req.params;
     const user = await UserModel.findOne({ username });

@@ -3,7 +3,6 @@ import mongoose from "mongoose";
 const Schema = mongoose.Schema;
 
 const notificationSchema = new Schema({
-  username: { type: String, unique: true },
   department: { type: String },
   notifications: [
     {
@@ -11,6 +10,7 @@ const notificationSchema = new Schema({
       message: { type: String },
       timeStamp: { type: Date },
       deleted: { type: Boolean, default: false },
+      rank: { type: Number },
     },
   ],
 });

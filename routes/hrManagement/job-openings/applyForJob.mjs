@@ -68,7 +68,7 @@ const router = express.Router();
 
 router.post("/api/apply-for-job", async (req, res) => {
   try {
-    const { name, mobile, email, aadharNo, jobTitle } = req.body;
+    const { name, mobile, email, aadharNo, jobTitle, resume } = req.body;
 
     // Check if an application with the same jobTitle and any of email, mobile, or aadharNo exists
     const existingApplication = await JobApplicationModel.findOne({
@@ -89,6 +89,7 @@ router.post("/api/apply-for-job", async (req, res) => {
       email,
       aadharNo,
       jobTitle,
+      resume,
     });
 
     await newApplication.save();

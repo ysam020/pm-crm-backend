@@ -1,9 +1,10 @@
 import express from "express";
 import UserModel from "../../../model/userModel.mjs";
+import verifySession from "../../../middlewares/verifySession.mjs";
 
 const router = express.Router();
 
-router.post("/api/add-appraisal", async (req, res) => {
+router.post("/api/add-appraisal", verifySession, async (req, res) => {
   try {
     const {
       username,

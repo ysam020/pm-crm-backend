@@ -13,6 +13,8 @@ import helmet from "helmet";
 
 dotenv.config();
 
+import chatbot from "./routes/chatbot.mjs";
+
 // Import routes
 import verifyUser from "./routes/verifyUser.mjs";
 import getUserData from "./routes/getUserData.mjs";
@@ -29,6 +31,12 @@ import deleteBackupCodes from "./routes/deleteBackupCodes.mjs";
 import sendBackupCodesMail from "./routes/sendBackupCodesMail.mjs";
 import enableTwoFactor from "./routes/enableTwoFactor.mjs";
 import disableTwoFactor from "./routes/disableTwoFactor.mjs";
+import deleteNotifications from "./routes/deleteNotifications.mjs";
+import addStickyNote from "./routes/addStickyNote.mjs";
+import getStickyNote from "./routes/getStickyNote.mjs";
+import addEvent from "./routes/addEvent.mjs";
+import getCalendarEvents from "./routes/getCalendarEvents.mjs";
+import deleteCalendarEvent from "./routes/deleteCalendarEvent.mjs";
 
 // Uploading Files to AWS S3
 import generatePreSignedUrl from "./routes/generatePreSignedUrl.mjs";
@@ -58,6 +66,9 @@ import viewTrainings from "./routes/hrManagement/training/viewTrainings.mjs";
 // HR Activities
 import addHrActivity from "./routes/hrManagement/hrActivities/addHrActivity.mjs";
 import getHrActivities from "./routes/hrManagement/hrActivities/getHrActivities.mjs";
+// Warning Memos
+import addWarningMemo from "./routes/hrManagement/warningMemo/addWarningMemo.mjs";
+import viewWarningMemos from "./routes/hrManagement/warningMemo/viewWarningMemos.mjs";
 // Job Openings
 import addJobOpening from "./routes/hrManagement/job-openings/addJobOpening.mjs";
 import viewJobOpenings from "./routes/hrManagement/job-openings/viewJobOpenings.mjs";
@@ -72,10 +83,16 @@ import scheduleInterview from "./routes/hrManagement/job-openings/scheduleInterv
 import addAttendance from "./routes/hrManagement/attendanceAndLeaves/addAttendance.mjs";
 import getAttendances from "./routes/hrManagement/attendanceAndLeaves/getAttendances.mjs";
 import addLeave from "./routes/hrManagement/attendanceAndLeaves/addLeave.mjs";
+import getOwnLeaves from "./routes/hrManagement/attendanceAndLeaves/getOwnLeaves.mjs";
 import getLeaveApplications from "./routes/hrManagement/attendanceAndLeaves/getLeaveApplications.mjs";
-import approveLeave from "./routes/hrManagement/attendanceAndLeaves/approveLeave.mjs";
+import updateLeaveStatus from "./routes/hrManagement/attendanceAndLeaves/updateLeaveStatus.mjs";
 import getAllAttendances from "./routes/hrManagement/attendanceAndLeaves/getAllAttendances.mjs";
-
+import getAttendanceSummary from "./routes/hrManagement/attendanceAndLeaves/getAttendanceSummary.mjs";
+import addWeekOff from "./routes/hrManagement/attendanceAndLeaves/addWeekOff.mjs";
+import getWeekOffs from "./routes/hrManagement/attendanceAndLeaves/getWeekOffs.mjs";
+import getAllWeekOffs from "./routes/hrManagement/attendanceAndLeaves/getAllWeekOffs.mjs";
+import updateWeekOffStatus from "./routes/hrManagement/attendanceAndLeaves/updateWeekOffStatus.mjs";
+import attendanceCorrection from "./routes/hrManagement/attendanceAndLeaves/attendanceCorrection.mjs";
 // Employee KYC
 import completeKyc from "./routes/employee-kyc/completeKyc.mjs";
 import kycApproval from "./routes/employee-kyc/kycApproval.mjs";
@@ -90,7 +107,6 @@ import viewOnboardings from "./routes/employee-onboarding/viewOnboardings.mjs";
 import getAllUsers from "./routes/home/getAllUsers.mjs";
 import getUserModules from "./routes/home/getUserModules.mjs";
 import assignModules from "./routes/home/assignModules.mjs";
-import assignRole from "./routes/home/assignRole.mjs";
 import unassignModule from "./routes/home/unassignModules.mjs";
 
 const MONGODB_URI =
@@ -155,7 +171,7 @@ if (cluster.isPrimary) {
       });
 
       app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
-
+      app.use(chatbot);
       app.use(generatePreSignedUrl);
 
       app.use(verifyUser);
@@ -173,6 +189,12 @@ if (cluster.isPrimary) {
       app.use(deleteBackupCodes);
       app.use(enableTwoFactor);
       app.use(disableTwoFactor);
+      app.use(deleteNotifications);
+      app.use(addStickyNote);
+      app.use(getStickyNote);
+      app.use(addEvent);
+      app.use(getCalendarEvents);
+      app.use(deleteCalendarEvent);
 
       // WebAuthn
       app.use(credentialCheck);
@@ -199,6 +221,9 @@ if (cluster.isPrimary) {
       // HR Activities
       app.use(addHrActivity);
       app.use(getHrActivities);
+      // Warning Memos
+      app.use(addWarningMemo);
+      app.use(viewWarningMemos);
       // Job Openings
       app.use(addJobOpening);
       app.use(viewJobOpenings);
@@ -213,10 +238,16 @@ if (cluster.isPrimary) {
       app.use(addAttendance);
       app.use(getAttendances);
       app.use(addLeave);
+      app.use(getOwnLeaves);
       app.use(getLeaveApplications);
-      app.use(approveLeave);
+      app.use(getAttendanceSummary);
+      app.use(updateLeaveStatus);
       app.use(getAllAttendances);
-
+      app.use(addWeekOff);
+      app.use(getWeekOffs);
+      app.use(getAllWeekOffs);
+      app.use(updateWeekOffStatus);
+      app.use(attendanceCorrection);
       // Employee KYC
       app.use(completeKyc);
       app.use(kycApproval);
@@ -231,7 +262,6 @@ if (cluster.isPrimary) {
       app.use(getAllUsers);
       app.use(getUserModules);
       app.use(assignModules);
-      app.use(assignRole);
       app.use(unassignModule);
 
       app.listen(9002, () => {

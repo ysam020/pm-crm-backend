@@ -1,9 +1,10 @@
 import express from "express";
 import hrActivityModel from "../../../model/hrActivityModel.mjs";
+import verifySession from "../../../middlewares/verifySession.mjs";
 
 const router = express.Router();
 
-router.post("/api/add-hr-activity", async (req, res) => {
+router.post("/api/add-hr-activity", verifySession, async (req, res) => {
   try {
     const hrActivity = req.body;
 

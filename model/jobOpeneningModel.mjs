@@ -6,6 +6,7 @@ const jobOpeningSchema = new Schema({
   jobTitle: {
     type: String,
     required: true,
+    uppercase: true,
   },
   numberOfVacancies: {
     type: Number,

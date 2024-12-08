@@ -15,42 +15,47 @@ router.get(
       const queryMonth = parseInt(month) - 1; // Month is 0-indexed in JS Dates
 
       const firstDayOfMonth = new Date(queryYear, queryMonth, 1);
-      const currentDate = new Date();
-      const isCurrentMonth =
-        queryYear === currentDate.getFullYear() &&
-        queryMonth === currentDate.getMonth();
+      const currentDate = new Date(); // Today's date
 
-      const lastDayOfMonth = isCurrentMonth
-        ? currentDate // Use today if querying the current month
-        : new Date(queryYear, queryMonth + 1, 0); // Last day of the queried month otherwise
+      // We only care about attendance data up to the current date of the month
+      const todayDate = new Date(
+        currentDate.getFullYear(),
+        currentDate.getMonth(),
+        currentDate.getDate()
+      );
 
-      const allDaysInMonth = [];
-      for (
-        let d = new Date(firstDayOfMonth);
-        d <= lastDayOfMonth;
-        d.setDate(d.getDate() + 1)
-      ) {
-        allDaysInMonth.push(new Date(d)); // Push a copy of the date
-      }
+      const totalDaysInMonth = todayDate.getDate(); // Days up to today in the current month
 
-      const calculateStatus = (timeIn, timeOut) => {
-        if (!timeIn || !timeOut) return "Leave";
-
-        const duration =
-          (new Date(timeOut) - new Date(timeIn)) / (1000 * 60 * 60); // Duration in hours
-        if (duration >= 8) return "Present";
-        if (duration >= 4.5 && duration < 8) return "Half Day";
-        return "Leave";
-      };
-
-      const allAttendanceRecords = await AttendanceModel.find();
+      const allAttendanceRecords = await AttendanceModel.find({
+        "attendance.date": {
+          $gte: firstDayOfMonth,
+          $lte: todayDate, // Only fetch records up to today's date
+        },
+      });
 
       if (!allAttendanceRecords || allAttendanceRecords.length === 0) {
-        return res.status(404).json({ message: "No attendance records found" });
+        // No records found, return "Leave" for all users for the entire month up to today
+        const summary = [];
+
+        // Create summary for each user (default to "Leave" for every day up to today)
+        const usernames = await AttendanceModel.distinct("username");
+        usernames.forEach((username) => {
+          const userSummary = {
+            username,
+            presents: 0,
+            leaves: totalDaysInMonth,
+            halfDays: 0,
+            weekOffs: 0,
+          };
+          summary.push(userSummary);
+        });
+
+        return res.status(200).json(summary);
       }
 
       const userAttendanceSummary = {};
 
+      // Initialize user summary
       allAttendanceRecords.forEach((record) => {
         const { username, attendance } = record;
 
@@ -59,39 +64,60 @@ router.get(
             presents: 0,
             leaves: 0,
             halfDays: 0,
+            weekOffs: 0,
+            attendedDates: new Set(), // To track the dates for which attendance exists
           };
         }
 
-        // Map dates with attendance entries for quick lookup
-        const attendanceMap = {};
-        attendance.forEach((entry) => {
-          const entryDate = new Date(entry.date).toISOString().split("T")[0]; // Normalize to YYYY-MM-DD
-          attendanceMap[entryDate] = entry;
-        });
+        // Filter attendance for the given month and count statuses
+        attendance
+          .filter(
+            (entry) =>
+              new Date(entry.date) >= firstDayOfMonth &&
+              new Date(entry.date) <= todayDate // Only consider up to today
+          )
+          .forEach((entry) => {
+            const entryDate = new Date(entry.date);
+            entryDate.setHours(0, 0, 0, 0); // Normalize date for comparison
 
-        // Check each day in the queried month
-        allDaysInMonth.forEach((date) => {
-          const dayKey = date.toISOString().split("T")[0]; // Normalize date for comparison
-          const entry = attendanceMap[dayKey];
+            // Track the dates for which attendance exists
+            userAttendanceSummary[username].attendedDates.add(
+              entryDate.getTime()
+            );
 
-          if (entry) {
-            const status = calculateStatus(entry.timeIn, entry.timeOut);
-            if (status === "Present")
+            // Increment counts based on attendance type
+            if (entry.type === "Present") {
               userAttendanceSummary[username].presents++;
-            else if (status === "Half Day")
+            } else if (entry.type === "Half Day") {
               userAttendanceSummary[username].halfDays++;
-            else userAttendanceSummary[username].leaves++;
-          } else {
-            // No record for this day, count as leave
-            userAttendanceSummary[username].leaves++;
-          }
-        });
+            } else if (entry.type === "Week Off") {
+              userAttendanceSummary[username].weekOffs++;
+            } else if (entry.type === "Leave") {
+              userAttendanceSummary[username].leaves++;
+            }
+          });
       });
 
-      const summary = Object.keys(userAttendanceSummary).map((username) => ({
-        username,
-        ...userAttendanceSummary[username],
-      }));
+      // Now we handle the case for missing days, where we increment leaves for any missing attendance
+      const summary = Object.keys(userAttendanceSummary).map((username) => {
+        const userSummary = userAttendanceSummary[username];
+        const attendedDaysCount = userSummary.attendedDates.size;
+
+        // For each user, we calculate the leaves as the total days up to today minus the attended days
+        let totalLeaves = totalDaysInMonth - attendedDaysCount;
+
+        // Add leave days if the user has explicitly marked "Leave"
+        totalLeaves += userSummary.leaves;
+
+        // Return the summary
+        return {
+          username,
+          presents: userSummary.presents,
+          halfDays: userSummary.halfDays,
+          weekOffs: userSummary.weekOffs,
+          leaves: totalLeaves, // Adjust leaves count for missing records and explicitly marked leaves
+        };
+      });
 
       res.status(200).json(summary);
     } catch (error) {

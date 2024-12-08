@@ -82,9 +82,9 @@
  *                     username:
  *                       type: string
  *                       example: "user_name"
- *                     role:
- *                       type: string
- *                       example: "admin"
+ *                     rank:
+ *                       type: Number
+ *                       example: 1
  *                     first_name:
  *                       type: string
  *                       example: "John"
@@ -302,6 +302,8 @@ router.post("/api/login", async (req, res) => {
       {
         userId: user._id,
         username: user.username,
+        department: user.department,
+        rank: user.rank,
       },
       process.env.JWT_SECRET,
       { expiresIn: "1h" }
@@ -332,7 +334,7 @@ router.post("/api/login", async (req, res) => {
       message: "Login successful",
       user: {
         username: user.username,
-        role: user.role,
+        rank: user.rank,
         first_name: user.first_name,
         middle_name: user.middle_name,
         last_name: user.last_name,

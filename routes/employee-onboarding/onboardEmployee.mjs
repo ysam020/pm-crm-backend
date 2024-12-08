@@ -28,7 +28,7 @@ router.post("/api/onboard-employee", verifySession, async (req, res) => {
   try {
     const { first_name, middle_name, last_name, email, employment_type } =
       req.body;
-    const username = `${first_name.toLowerCase()}_${last_name.toLowerCase()}`;
+    const username = `${first_name}_${last_name}`;
     const password = "1234";
 
     // Check if there exists an employee with same username
@@ -45,25 +45,19 @@ router.post("/api/onboard-employee", verifySession, async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, saltRounds);
 
     const newUser = new UserModel({
-      first_name: first_name.toUpperCase(),
-      middle_name: middle_name ? middle_name.toUpperCase() : "",
-      last_name: last_name.toUpperCase(),
+      first_name: first_name,
+      middle_name: middle_name ? middle_name : "",
+      last_name: last_name,
       email,
       username,
       password: hashedPassword,
       modules: ["Employee KYC", "Employee Onboarding"],
-      role: "User",
       employment_type: employment_type,
     });
 
     await newUser.save();
 
-    const html = onboardingTemplate(
-      first_name.toUpperCase(),
-      username,
-      password,
-      CLIENT_URI
-    );
+    const html = onboardingTemplate(first_name, username, password, CLIENT_URI);
 
     // Prepare SES email parameters
     const params = {
@@ -73,7 +67,7 @@ router.post("/api/onboard-employee", verifySession, async (req, res) => {
       },
       Message: {
         Subject: {
-          Data: `Welcome to the Team, ${first_name.toUpperCase()}!`,
+          Data: `Welcome to the Team, ${first_name}!`,
         },
         Body: {
           Html: {

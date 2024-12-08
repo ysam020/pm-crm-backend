@@ -70,6 +70,9 @@ const leaveSchema = new Schema({
   month_year: {
     type: String,
   },
+  totalPaidLeaves: {
+    type: Number,
+  },
   leaves: [
     {
       from: {
@@ -100,6 +103,25 @@ const leaveSchema = new Schema({
   ],
 });
 
+// Event Schema
+const eventSchmea = new Schema({
+  title: { type: String },
+  date: { type: String },
+  startTime: { type: String },
+  endTime: { type: String },
+  description: { type: String },
+});
+
+// Warning memo schema
+const warningMemoSchema = new Schema({
+  subject: {
+    type: String,
+  },
+  description: {
+    type: String,
+  },
+});
+
 // User schema
 const userSchema = new Schema(
   {
@@ -107,6 +129,7 @@ const userSchema = new Schema(
       type: String,
       required: true,
       unique: true,
+      lowercase: true,
     },
     password: {
       type: String,
@@ -118,25 +141,28 @@ const userSchema = new Schema(
         type: String,
       },
     ],
+    note: {
+      type: String,
+    },
     ////////////////////////////////////////////////////////////////// Onboarding
     first_name: {
       type: String,
+      uppercase: true,
     },
     middle_name: {
       type: String,
+      uppercase: true,
     },
     last_name: {
       type: String,
+      uppercase: true,
     },
     email: {
       type: String,
-      unique: true,
+      lowercase: true,
     },
     employment_type: { type: String },
     skill: {
-      type: String,
-    },
-    company_policy_visited: {
       type: String,
     },
     employee_photo: {
@@ -148,9 +174,11 @@ const userSchema = new Schema(
     ////////////////////////////////////////////////////////////////// KYC
     designation: {
       type: String,
+      uppercase: true,
     },
     department: {
       type: String,
+      uppercase: true,
     },
     joining_date: {
       type: String,
@@ -187,6 +215,7 @@ const userSchema = new Schema(
     },
     official_email: {
       type: String,
+      lowercase: true,
     },
     dob: {
       type: String,
@@ -196,8 +225,9 @@ const userSchema = new Schema(
     },
     blood_group: {
       type: String,
+      uppercase: true,
     },
-    highest_qualification: {
+    qualification: {
       type: String,
     },
     aadhar_no: {
@@ -245,6 +275,7 @@ const userSchema = new Schema(
     },
     ifsc_code: {
       type: String,
+      uppercase: true,
     },
     kyc_date: { type: String },
     kyc_approval: {
@@ -253,10 +284,9 @@ const userSchema = new Schema(
     // Module fields
     appraisals: [appraisalSchema],
     trainings: [trainingSchema],
-    totalPaidLeaves: {
-      type: Number,
-    },
     leaves: [leaveSchema],
+    warningMemos: [warningMemoSchema],
+    events: [eventSchmea],
     // Password reset fields
     resetPasswordOTP: {
       type: String,

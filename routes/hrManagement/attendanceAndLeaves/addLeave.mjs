@@ -2,6 +2,10 @@ import express from "express";
 import UserModel from "../../../model/userModel.mjs";
 import verifySession from "../../../middlewares/verifySession.mjs";
 import jwt from "jsonwebtoken";
+import addNotification from "../../../utils/addNotification.mjs";
+import sendDepartmentPushNotifications from "../../../utils/sendDepartmentPushNotifications.mjs";
+import convertDateFormat from "../../../utils/convertDateFormat.mjs";
+import mongoose from "mongoose";
 
 const router = express.Router();
 
@@ -18,15 +22,9 @@ router.post("/api/add-leave", verifySession, async (req, res) => {
 
     let userLeave = await UserModel.findOne({ username });
 
-    const currentMonth = new Date().getMonth(); // Current month (0-11)
-    const monthsRemaining = 12 - currentMonth; // Remaining months in the current year
-    let remainingPaidLeaves = userLeave.totalPaidLeaves
-      ? userLeave.totalPaidLeaves
-      : monthsRemaining * 1.5; // 1.5 paid leaves for each remaining month
-
     const monthEntriesToPush = [];
-
     let currentDate = new Date(startDate);
+    let lastLeaveId = null; // Track the last generated leaveId
 
     while (currentDate <= endDate) {
       const monthYear = `${currentDate.getFullYear()}-${String(
@@ -45,8 +43,12 @@ router.post("/api/add-leave", verifySession, async (req, res) => {
       );
 
       if (!monthEntry) {
-        monthEntry = { month_year: monthYear, leaves: [] };
-        monthEntriesToPush.push(monthEntry);
+        monthEntry = {
+          month_year: monthYear,
+          leaves: [],
+          totalPaidLeaves: 1.5,
+        };
+        monthEntriesToPush.push(monthEntry); // Push new month entry if not found
       }
 
       const existingLeave = monthEntry.leaves.find(
@@ -59,21 +61,20 @@ router.post("/api/add-leave", verifySession, async (req, res) => {
         const leaveDaysInRange =
           Math.floor((rangeEnd - currentDate) / (1000 * 60 * 60 * 24)) + 1;
 
-        let paidLeaves = 0;
-        let unpaidLeaves = 0;
-
         if (isNaN(leaveDaysInRange) || leaveDaysInRange <= 0) {
           throw new Error("Invalid leave duration");
         }
 
-        // If there are no paid leaves available, all leaves are unpaid
+        let paidLeaves = 0;
+        let unpaidLeaves = 0;
+
+        let remainingPaidLeaves = monthEntry.totalPaidLeaves || 1.5;
+
         if (remainingPaidLeaves === 0) {
           paidLeaves = 0;
           unpaidLeaves = leaveDaysInRange;
         } else {
-          // Handle case where some paid leaves are available
           if (currentDate.getMonth() === rangeEnd.getMonth()) {
-            // If the leave is within the same month
             paidLeaves = Math.min(remainingPaidLeaves, leaveDaysInRange);
             unpaidLeaves = leaveDaysInRange - paidLeaves;
           } else {
@@ -85,7 +86,6 @@ router.post("/api/add-leave", verifySession, async (req, res) => {
             const daysLeftInCurrentMonth =
               daysInCurrentMonth - currentDate.getDate() + 1;
 
-            // Allocate paid leave for the current month
             const paidInCurrentMonth = Math.min(
               remainingPaidLeaves,
               daysLeftInCurrentMonth
@@ -103,11 +103,13 @@ router.post("/api/add-leave", verifySession, async (req, res) => {
         unpaidLeaves = isNaN(unpaidLeaves) ? 0 : unpaidLeaves;
 
         remainingPaidLeaves -= paidLeaves;
-
-        // Ensure remainingPaidLeaves doesn't go negative
         remainingPaidLeaves = Math.max(remainingPaidLeaves, 0);
 
+        const leaveId = new mongoose.Types.ObjectId();
+        lastLeaveId = leaveId; // Update the lastLeaveId for each generated leave
+
         const leaveEntry = {
+          _id: leaveId,
           from: currentDate,
           to: rangeEnd,
           reason,
@@ -115,10 +117,11 @@ router.post("/api/add-leave", verifySession, async (req, res) => {
           medical_certificate,
           paidLeaves: paidLeaves,
           unpaidLeaves: unpaidLeaves,
-          status: "Pending", // Assuming leave is pending by default
+          status: "Pending",
         };
 
         monthEntry.leaves.push(leaveEntry);
+        monthEntry.totalPaidLeaves = remainingPaidLeaves;
         userLeave.markModified("leaves");
       } else {
         return res.status(200).json({
@@ -129,21 +132,40 @@ router.post("/api/add-leave", verifySession, async (req, res) => {
       currentDate = new Date(nextMonth);
     }
 
-    // Add all the new month entries to the leaves array
     userLeave.leaves.push(...monthEntriesToPush);
-
-    // Update the user's total paid leaves after all leave entries have been processed
-    userLeave.totalPaidLeaves = remainingPaidLeaves;
-
-    // Ensure totalPaidLeaves is a valid number
-    userLeave.totalPaidLeaves = isNaN(userLeave.totalPaidLeaves)
-      ? 0
-      : userLeave.totalPaidLeaves;
-
-    // Save the updated user leave data
     const savedUserLeave = await userLeave.save();
 
-    // Send response back to the client
+    if (lastLeaveId) {
+      // Use the last generated leaveId for the notification
+      addNotification(
+        decoded.department,
+        "Leave Request",
+        `${username} has applied for leave from ${convertDateFormat(
+          from
+        )} to ${convertDateFormat(to)}.`,
+        decoded.rank,
+        lastLeaveId
+      );
+    }
+
+    const payload = {
+      notification: {
+        title: `Leave Request`,
+        body: `${username} has applied for leave from ${convertDateFormat(
+          from
+        )} to ${convertDateFormat(to)}.`,
+        image:
+          "https://paymaster-document.s3.ap-south-1.amazonaws.com/kyc/personal.webp/favicon.png",
+      },
+    };
+
+    await sendDepartmentPushNotifications(
+      decoded.username,
+      decoded.department,
+      decoded.rank,
+      payload
+    );
+
     res.status(200).json({
       message: "Leave added successfully.",
       totalPaidLeaves: savedUserLeave.totalPaidLeaves,

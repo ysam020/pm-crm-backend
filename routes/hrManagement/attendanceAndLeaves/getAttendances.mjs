@@ -30,16 +30,28 @@ router.get(
       const startDate = new Date(year, month - 1, 1); // month - 1 because JavaScript months are 0-indexed
       const endDate = new Date(year, month, 0); // Get the last date of the month
 
-      // If the month is December, no data is sent
-      if (parseInt(month, 10) === 12) {
-        return res.status(200).json([]); // No data for December
-      }
-
       // Fetch attendance for the user
       const attendanceRecord = await AttendanceModel.findOne({ username });
 
+      // If no attendance record exists, return "Leave" for all days of the month up to today
       if (!attendanceRecord) {
-        return res.status(404).json({ message: "No attendance records found" });
+        const attendanceReport = [];
+        const daysInMonth = new Date(year, month, 0).getDate(); // Get the number of days in the month
+        for (let day = 1; day <= daysInMonth; day++) {
+          const dateToCheck = new Date(year, month - 1, day);
+          if (shouldLimitData && dateToCheck > currentDate) {
+            break; // Stop adding attendance data after today for the current month
+          }
+
+          attendanceReport.push({
+            date: dateToCheck,
+            status: "Leave", // Default to "Leave" for all days
+            timeIn: "",
+            timeOut: "",
+            remarks: "",
+          });
+        }
+        return res.status(200).json(attendanceReport);
       }
 
       const attendanceData = attendanceRecord.attendance;
@@ -50,19 +62,6 @@ router.get(
         return recordDate >= startDate && recordDate <= endDate;
       });
 
-      // Helper to calculate attendance status
-      const calculateStatus = (timeIn, timeOut) => {
-        if (!timeIn || !timeOut) return "Leave";
-        const duration =
-          (new Date(timeOut) - new Date(timeIn)) / (1000 * 60 * 60); // hours
-        if (duration >= 8) return "Present";
-        if (duration >= 4.5 && duration < 8) return "Half Day";
-        return "Leave";
-      };
-
-      // Generate the attendance report for the specified month
-      const attendanceReport = [];
-
       // Map attendance data by date for easier lookup
       const attendanceMap = new Map();
       filteredAttendance.forEach((record) => {
@@ -70,13 +69,15 @@ router.get(
         recordDate.setHours(0, 0, 0, 0); // Normalize the time to midnight for comparison
         attendanceMap.set(recordDate.getTime(), {
           date: recordDate,
-          timeIn: record.timeIn,
-          timeOut: record.timeOut || "", // Handle missing timeOut
+          status: record.type || "Leave", // Use stored type or default to "Leave"
+          timeIn: record.timeIn || "",
+          timeOut: record.timeOut || "",
           remarks: record.remarks || "",
         });
       });
 
-      // Prepare attendance for each day in the requested month
+      // Generate the attendance report for the specified month
+      const attendanceReport = [];
       const daysInMonth = new Date(year, month, 0).getDate(); // Get the number of days in the month
       for (let day = 1; day <= daysInMonth; day++) {
         const dateToCheck = new Date(year, month - 1, day);
@@ -89,10 +90,7 @@ router.get(
         if (attendanceForDate) {
           attendanceReport.push({
             date: dateToCheck,
-            status: calculateStatus(
-              attendanceForDate.timeIn,
-              attendanceForDate.timeOut
-            ),
+            status: attendanceForDate.status,
             timeIn: attendanceForDate.timeIn,
             timeOut: attendanceForDate.timeOut,
             remarks: attendanceForDate.remarks,
@@ -100,7 +98,7 @@ router.get(
         } else {
           attendanceReport.push({
             date: dateToCheck,
-            status: "Leave",
+            status: "Leave", // Default to "Leave" for days with no records
             timeIn: "",
             timeOut: "",
             remarks: "",

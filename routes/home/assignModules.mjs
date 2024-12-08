@@ -69,6 +69,7 @@ import UserModel from "../../model/userModel.mjs";
 import admin from "../../utils/firebaseAdmin.mjs";
 import verifySession from "../../middlewares/verifySession.mjs";
 import jwt from "jsonwebtoken";
+import sendPushNotifications from "../../utils/sendPushNotifications.mjs";
 
 const router = express.Router();
 
@@ -115,7 +116,7 @@ router.put("/api/assign-modules", verifySession, async (req, res) => {
     user.modules = [...new Set([...user.modules, ...modules])];
 
     await user.save();
-    console.log(user.modules);
+
     // Ensure the user has FCM tokens
     if (!user.fcmTokens || user.fcmTokens.length === 0) {
       return res.status(400).send({ message: "User has no FCM tokens" });
@@ -129,28 +130,10 @@ router.put("/api/assign-modules", verifySession, async (req, res) => {
         image:
           "https://paymaster-document.s3.ap-south-1.amazonaws.com/kyc/personal.webp/favicon.png",
       },
-      data: {
-        LinkUrl: "http://localhost:3000",
-      },
     };
 
-    //  Send notifications to each token
-    const responses = await Promise.all(
-      user.fcmTokens.map(async (token) => {
-        try {
-          return await admin.messaging().send({ ...payload, token });
-        } catch (error) {
-          console.error("Error sending notification to token:", token, error);
-          return { error }; // Return error for this token
-        }
-      })
-    );
+    await sendPushNotifications(user, payload);
 
-    // Optionally handle responses and log success/errors
-    const failedTokens = responses.filter((resp) => resp.error);
-    if (failedTokens.length > 0) {
-      console.error("Failed to send notifications for tokens:", failedTokens);
-    }
     res.status(200).send({ message: "Notification sent successfully" });
   } catch (error) {
     console.error("Error assigning modules:", error);

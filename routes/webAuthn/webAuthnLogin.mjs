@@ -16,6 +16,8 @@ const authenticateUser = async (
     {
       userId: user._id,
       username: user.username,
+      department: user.department,
+      rank: user.rank,
     },
     process.env.JWT_SECRET,
     { expiresIn: "1h" }
@@ -48,7 +50,7 @@ const authenticateUser = async (
     message: "Login successful",
     user: {
       username: user.username,
-      role: user.role,
+      rank: user.rank,
       first_name: user.first_name,
       middle_name: user.middle_name,
       last_name: user.last_name,

@@ -1,9 +1,10 @@
 import express from "express";
 import UserModel from "../../model/userModel.mjs";
+import verifySession from "../../middlewares/verifySession.mjs";
 
 const router = express.Router();
 
-router.get("/api/get-events", async (req, res) => {
+router.get("/api/get-events", verifySession, async (req, res) => {
   try {
     // Get today's date and format as MM-DD
     const today = new Date();

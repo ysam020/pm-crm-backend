@@ -17,7 +17,10 @@ const attendanceSchema = new Schema({
       timeOut: {
         type: Date,
       },
-      remarks: {
+      type: {
+        type: String,
+      },
+      status: {
         type: String,
       },
     },
