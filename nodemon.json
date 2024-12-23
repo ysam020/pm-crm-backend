@@ -3,15 +3,18 @@
     "NODE_ENV": "development"
   },
   "watch": [
-    "app.mjs",
-    "routes",
-    "model",
+    "config",
+    "controllers",
     "middlewares",
+    "model",
+    "routes",
+    "scripts",
     "templates",
     "utils",
+    "app.mjs",
     ".env",
     "logger.mjs",
-    "swaggerConfig.js"
+    "connectDb.mjs"
   ],
   "ext": "js,json,mjs",
   "exec": "node app.mjs"

@@ -1,6 +1,13 @@
 import NotificationModel from "../model/notificationModel.mjs";
 
-const addNotification = async (department, title, message, rank, leaveId) => {
+const addNotification = async (
+  io,
+  department,
+  title,
+  message,
+  rank,
+  leaveId
+) => {
   const notificationEntry = {
     _id: leaveId,
     title: title,
@@ -16,6 +23,15 @@ const addNotification = async (department, title, message, rank, leaveId) => {
     },
     { upsert: true }
   );
+
+  io.emit("notification", {
+    _id: leaveId,
+    department,
+    rank,
+    notificationEntry,
+    title,
+    message,
+  });
 };
 
 export default addNotification;

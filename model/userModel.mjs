@@ -1,5 +1,14 @@
 import mongoose from "mongoose";
-import aesEncrypt from "../utils/aesEncrypt.mjs";
+import {
+  generateBackupCodes,
+  getFullName,
+  encryptField,
+  decryptField,
+  addSession,
+  resetBlockStatus,
+  isPasswordCorrect,
+} from "./methods/userMethod.mjs";
+import bcrypt from "bcrypt";
 
 const Schema = mongoose.Schema;
 
@@ -15,7 +24,6 @@ const sessionSchema = new Schema({
   expiresAt: {
     type: Date,
   },
-  ipAddress: String,
   userAgent: String,
   latitude: {
     type: Number,
@@ -144,7 +152,7 @@ const userSchema = new Schema(
     note: {
       type: String,
     },
-    ////////////////////////////////////////////////////////////////// Onboarding
+    ////////////////////////////////////////////////////////////////// KYC
     first_name: {
       type: String,
       uppercase: true,
@@ -161,17 +169,9 @@ const userSchema = new Schema(
       type: String,
       lowercase: true,
     },
-    employment_type: { type: String },
-    skill: {
-      type: String,
-    },
     employee_photo: {
       type: String,
     },
-    resume: { type: String },
-    address_proof: { type: String },
-
-    ////////////////////////////////////////////////////////////////// KYC
     designation: {
       type: String,
       uppercase: true,
@@ -319,26 +319,27 @@ const userSchema = new Schema(
   { optimisticConcurrency: true }
 );
 
-// Method to generate backup codes
-userSchema.methods.generateBackupCodes = function (numCodes = 10) {
-  const codes = [];
-  const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"; // Characters to use in codes
+userSchema.methods.generateBackupCodes = generateBackupCodes;
+userSchema.methods.getFullName = getFullName;
+userSchema.methods.encryptField = encryptField;
+userSchema.methods.decryptField = decryptField;
+userSchema.methods.addSession = addSession;
+userSchema.methods.resetBlockStatus = resetBlockStatus;
+userSchema.methods.isPasswordCorrect = isPasswordCorrect;
 
-  for (let i = 0; i < numCodes; i++) {
-    let code = "";
-    for (let j = 0; j < 8; j++) {
-      // Ensure each code is 8 characters long
-      const randomIndex = Math.floor(Math.random() * characters.length);
-      code += characters[randomIndex];
+userSchema.pre("save", async function (next) {
+  try {
+    // Check if password has been modified or is being set for the first time
+    if (this.isModified("password") || this.isNew) {
+      // Hash the password using bcrypt
+      const hashedPassword = await bcrypt.hash(this.password, 10);
+      this.password = hashedPassword;
     }
-    codes.push(code);
+    next();
+  } catch (error) {
+    next(error);
   }
-
-  // Encrypt the backup codes before saving them using AES-256
-  const encryptedCodes = codes.map((code) => aesEncrypt(code)); // Encrypt each code
-  this.backupCodes = encryptedCodes; // Save encrypted codes to the user instance
-  return codes; // Return the unencrypted codes (or return encrypted if needed)
-};
+});
 
 const UserModel = mongoose.model("User", userSchema);
 export default UserModel;
