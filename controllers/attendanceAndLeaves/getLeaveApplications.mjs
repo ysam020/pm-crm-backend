@@ -1,47 +1,60 @@
-import UserModel from "../../model/userModel.mjs";
+import AttendanceModel from "../../model/attendanceModel.mjs";
 
-const getLeaveApplications = async (req, res) => {
+const getAllUsersLeaves = async (req, res) => {
   const { month_year } = req.params;
 
   try {
     const [year, month] = month_year.split("-").map(Number);
-    const startDate = new Date(year, month - 1, 1);
 
-    const leaves = await UserModel.find({
-      from: { $gte: startDate },
-    });
+    // Start and end dates for the requested month
+    const startDate = new Date(year, month - 1, 1).toLocaleDateString("en-CA");
+    const endDate = new Date(
+      year,
+      month,
+      0,
+      23,
+      59,
+      59,
+      999
+    ).toLocaleDateString("en-CA");
 
-    // Helper function to format date
-    const formatDate = (isoDate) => {
-      const date = new Date(isoDate);
-      const day = String(date.getDate()).padStart(2, "0");
-      const month = String(date.getMonth() + 1).padStart(2, "0");
-      const year = date.getFullYear();
-      return `${day}-${month}-${year}`;
-    };
+    // Query to fetch users with status "Leave" in the given month/year
+    const attendances = await AttendanceModel.find({
+      attendanceRecords: {
+        $elemMatch: {
+          from: { $gte: startDate, $lte: endDate },
+          status: "Leave",
+        },
+      },
+    }).select("username attendanceRecords");
 
-    // Transform data into the desired structure
-    const transformedData = leaves.flatMap((leave) =>
-      leave.leaves.flatMap((monthYearLeave) =>
-        monthYearLeave.leaves.map((item) => ({
-          _id: item._id,
-          username: leave.username,
-          from: formatDate(item.from),
-          to: formatDate(item.to),
-          totalPaidLeaves: leave.totalPaidLeaves,
-          reason: item.reason,
-          sick_leave: item.sick_leave,
-          medical_certificate: item.medical_certificate,
-          status: item.status,
+    // Flatten and restructure the result
+    const result = attendances.flatMap((user) =>
+      user.attendanceRecords
+        .filter(
+          (record) =>
+            record.status === "Leave" &&
+            record.from >= startDate &&
+            record.from <= endDate
+        )
+        .map((record) => ({
+          username: user.username,
+          from: record.from,
+          to: record.to,
+          status: record.approval_status,
+          reason: record.reason || "",
+          medical_certificate: record.medical_certificate || "",
         }))
-      )
     );
 
-    res.status(200).send(transformedData);
+    res.status(200).json(result);
   } catch (error) {
-    console.error(error);
-    res.status(500).send("Internal Server Error");
+    console.error("Error fetching all users' leaves:", error);
+    res.status(500).json({
+      message: "Internal Server Error",
+      error: error.message,
+    });
   }
 };
 
-export default getLeaveApplications;
+export default getAllUsersLeaves;

@@ -1,3 +1,57 @@
+/**
+ * @swagger
+ * /api/get-user-modules/{username}:
+ *   get:
+ *     summary: Retrieve a user's assigned modules
+ *     description: This route retrieves the modules assigned to a specific user.
+ *     parameters:
+ *       - in: path
+ *         name: username
+ *         required: true
+ *         description: The username of the user whose modules are being retrieved.
+ *         schema:
+ *           type: string
+ *           example: "user_name"
+ *     responses:
+ *       200:
+ *         description: Successfully retrieved the user's modules.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 username:
+ *                   type: string
+ *                   example: "user_name"
+ *                 modules:
+ *                   type: array
+ *                   items:
+ *                     type: string
+ *                   example: ["Module 1", "Module 2"]
+ *       500:
+ *         description: Internal server error when retrieving user modules.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Something went wrong"
+ *       404:
+ *         description: User not found.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "User not found"
+ *     tags:
+ *       - Admin
+ */
+
 import UserModel from "../../model/userModel.mjs";
 
 const getUserModules = async (req, res) => {

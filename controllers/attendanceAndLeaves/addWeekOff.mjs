@@ -19,63 +19,159 @@ const addWeekOff = async (req, res) => {
       return res.status(400).json({ message: "Date is required" });
     }
 
-    const weekOffDate = new Date(date);
-    if (isNaN(weekOffDate.getTime())) {
-      return res.status(400).json({ message: "Invalid date format" });
-    }
-
-    // Extract the month and year from the provided date
-    const applyingMonth = weekOffDate.getMonth(); // 0-indexed
-    const applyingYear = weekOffDate.getFullYear();
-
     // Find the user's attendance record or create one if not found
-    let attendanceRecord = await AttendanceModel.findOne({ username });
+    let attendances = await AttendanceModel.findOne({ username });
 
-    if (!attendanceRecord) {
-      attendanceRecord = new AttendanceModel({
+    if (!attendances) {
+      const attendanceRecord = new AttendanceModel({
         username,
-        attendance: [],
+        attendanceRecords: [
+          {
+            from: date,
+            to: date,
+            type: "Week Off",
+            status: "Week Off",
+            approval_status: "Pending",
+          },
+        ],
+        leaveBalance: [],
       });
+
+      await attendanceRecord.save();
+
+      res.status(200).json({ message: "Week Off applied successfully" });
+      return;
     }
 
-    // Check if a record already exists for the given date
-    const existingEntry = attendanceRecord.attendance.find(
-      (record) =>
-        new Date(record.date).toISOString() === weekOffDate.toISOString()
+    // Check if a record already exists for the given date and status
+    const existingEntry = attendances.attendanceRecords.find(
+      (record) => record.from === date
     );
 
-    if (existingEntry) {
+    if (existingEntry && existingEntry.status === "Week Off") {
       return res
         .status(400)
         .json({ message: `Week Off already applied on this date` });
+    } else if (existingEntry) {
+      // Temporarily treat the update as adding a new week off to check rules
+      const appliedWeekOffDates = attendances.attendanceRecords
+        .filter((record) => record.type === "Week Off")
+        .map((record) => new Date(record.from).getTime());
+
+      const dayInMs = 24 * 60 * 60 * 1000; // Milliseconds in a day
+      const currentDay = new Date(date).getTime();
+
+      // Include the current day in the list to check for consecutive dates
+      const allDates = [...appliedWeekOffDates, currentDay].sort(
+        (a, b) => a - b
+      );
+
+      // Check for consecutive week-off restriction
+      let consecutiveCount = 1; // Initialize the counter for consecutive days
+      for (let i = 1; i < allDates.length; i++) {
+        if (allDates[i] - allDates[i - 1] === dayInMs) {
+          consecutiveCount++;
+          if (consecutiveCount > 2) {
+            return res.status(400).json({
+              message: "Cannot apply for more than two consecutive Week Offs",
+            });
+          }
+        } else {
+          consecutiveCount = 1;
+        }
+      }
+
+      // Check if more than 4 week-offs have already been applied for the month
+      const weekOffCount = attendances.attendanceRecords.filter((record) => {
+        const recordDateParts = record.from.split("-");
+        const applyingDateParts = date.split("-");
+        const recordYear = recordDateParts[0];
+        const recordMonth = recordDateParts[1];
+        const applyingYear = applyingDateParts[0];
+        const applyingMonth = applyingDateParts[1];
+
+        return (
+          record.type === "Week Off" &&
+          recordYear === applyingYear &&
+          recordMonth === applyingMonth
+        );
+      }).length;
+
+      if (weekOffCount >= 4) {
+        return res.status(400).json({
+          message: "Cannot apply for more than 4 Week Offs",
+        });
+      }
+
+      // Update the existing record's status to "Week Off"
+      existingEntry.type = "Week Off";
+      existingEntry.status = "Week Off";
+      existingEntry.approval_status = "Pending";
+
+      // Save the updated attendance record
+      await attendances.save();
+
+      const io = req.app.get("io");
+
+      addNotification(
+        io,
+        decoded.department,
+        "Week Off Update",
+        `${username}'s status on ${date} has been updated to Week Off`,
+        decoded.rank,
+        existingEntry._id
+      );
+
+      const payload = {
+        notification: {
+          title: `Week Off Update`,
+          body: `${username}'s status on ${date} has been updated to Week Off`,
+          image:
+            "https://paymaster-document.s3.ap-south-1.amazonaws.com/kyc/personal.webp/favicon.png",
+        },
+      };
+
+      await sendDepartmentPushNotifications(
+        decoded.username,
+        decoded.department,
+        decoded.rank,
+        payload
+      );
+
+      return res
+        .status(200)
+        .json({ message: "Week Off status updated successfully" });
     }
 
     // Check if more than 4 week offs have already been applied for the month
-    const weekOffCount = attendanceRecord.attendance.filter((record) => {
-      const recordDate = new Date(record.date);
+    const weekOffCount = attendances.attendanceRecords.filter((record) => {
+      const recordDateParts = record.from.split("-");
+      const applyingDateParts = date.split("-");
+      const recordYear = recordDateParts[0];
+      const recordMonth = recordDateParts[1];
+      const applyingYear = applyingDateParts[0];
+      const applyingMonth = applyingDateParts[1];
+
       return (
         record.type === "Week Off" &&
-        recordDate.getMonth() === applyingMonth &&
-        recordDate.getFullYear() === applyingYear
+        recordYear === applyingYear &&
+        recordMonth === applyingMonth
       );
     }).length;
 
     if (weekOffCount >= 4) {
       return res.status(400).json({
-        message: `Cannot apply for more than 4 Week Offs in ${weekOffDate.toLocaleString(
-          "default",
-          { month: "long", year: "numeric" }
-        )}`,
+        message: "Cannot apply for more than 4 Week Offs",
       });
     }
 
     // Check for consecutive week off restriction
-    const appliedWeekOffDates = attendanceRecord.attendance
+    const appliedWeekOffDates = attendances.attendanceRecords
       .filter((record) => record.type === "Week Off")
-      .map((record) => new Date(record.date).getTime());
+      .map((record) => new Date(record.from).getTime());
 
     const dayInMs = 24 * 60 * 60 * 1000; // Milliseconds in a day
-    const currentDay = weekOffDate.getTime();
+    const currentDay = new Date(date).getTime();
 
     // Include the current day in the list to check for consecutive dates
     const allDates = [...appliedWeekOffDates, currentDay].sort((a, b) => a - b);
@@ -90,24 +186,24 @@ const addWeekOff = async (req, res) => {
           });
         }
       } else {
-        consecutiveCount = 1; // Reset counter if dates are not consecutive
+        consecutiveCount = 1;
       }
     }
 
     const id = new mongoose.Types.ObjectId();
 
     // Add a new entry with the status "Week Off"
-    attendanceRecord.attendance.push({
+    attendances.attendanceRecords.push({
       _id: id,
-      date: weekOffDate,
+      from: date,
+      to: date,
       type: "Week Off",
-      timeIn: null,
-      timeOut: null,
-      remarks: null,
+      status: "Week Off",
+      approval_status: "Pending",
     });
 
     // Save the updated attendance record
-    await attendanceRecord.save();
+    await attendances.save();
 
     const io = req.app.get("io");
 
@@ -115,9 +211,7 @@ const addWeekOff = async (req, res) => {
       io,
       decoded.department,
       "Week Off Request",
-      `${username} has applied for Week Off on ${weekOffDate
-        .toLocaleDateString("en-GB")
-        .replace(/\//g, "-")}`,
+      `${username} has applied for Week Off on ${date}`,
       decoded.rank,
       id
     );
@@ -125,9 +219,7 @@ const addWeekOff = async (req, res) => {
     const payload = {
       notification: {
         title: `Week Off Request`,
-        body: `${username} has applied for Week Off on ${weekOffDate
-          .toLocaleDateString("en-GB")
-          .replace(/\//g, "-")}`,
+        body: `${username} has applied for Week Off on ${date}`,
         image:
           "https://paymaster-document.s3.ap-south-1.amazonaws.com/kyc/personal.webp/favicon.png",
       },

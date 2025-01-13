@@ -22,6 +22,6 @@ router.post("/api/generate-presigned-url", generatePreSignedUrl);
 router.get("/api/get-all-users", verifySession, getAllUsers);
 router.get("/api/get-user-modules/:username", verifySession, getUserModules);
 router.put("/api/assign-modules", verifySession, assignModules);
-router.put("/api/unassign-modules", unassignModules);
+router.put("/api/unassign-modules", verifySession, unassignModules);
 
 export default router;

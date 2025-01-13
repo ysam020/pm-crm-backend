@@ -10,6 +10,7 @@ const jobApplicationSchema = new Schema({
   jobTitle: { type: String, uppercase: true },
   resume: { type: String },
   interviewDate: { type: String },
+  reason: { type: String },
   status: {
     type: String,
   },

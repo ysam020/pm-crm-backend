@@ -1,3 +1,44 @@
+/**
+ * @swagger
+ * /api/disable-two-factor:
+ *   delete:
+ *     summary: Disable two-factor authentication
+ *     description: Disables two-factor authentication (Google Authenticator) for the user. It also removes the associated twoFactorSecret and QR code.
+ *     responses:
+ *       200:
+ *         description: Successfully disabled two-factor authentication
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Two factor authentication disabled"
+ *       404:
+ *         description: User not found - if the user doesn't exist
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "User not found"
+ *       500:
+ *         description: Internal Server Error - error disabling two-factor authentication
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Failed to disable two-factor authentication"
+ *     tags:
+ *       - Two Factor Authentication (Google Authenticator)
+ */
+
 import UserModel from "../../model/userModel.mjs";
 import jwt from "jsonwebtoken";
 

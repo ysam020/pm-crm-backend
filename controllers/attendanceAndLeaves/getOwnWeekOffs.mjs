@@ -2,38 +2,59 @@ import AttendanceModel from "../../model/attendanceModel.mjs";
 import jwt from "jsonwebtoken";
 
 const getOwnWeekOffs = async (req, res) => {
+  const { month_year } = req.params;
+
   try {
-    const { month_year } = req.params;
-    const [month, year] = month_year.split("-").map(Number);
-
-    if (!month || month < 1 || month > 12 || !year) {
-      return res.status(400).json({ message: "Invalid month_year format" });
-    }
-
+    const [year, month] = month_year.split("-").map(Number);
     const token = res.locals.token;
-    const username = jwt.verify(token, process.env.JWT_SECRET).username;
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const username = decoded.username;
 
-    const startDate = new Date(year, month - 1, 1);
-    const endDate = new Date(year, month, 0);
+    // Start and end dates for the requested month
+    const startDate = new Date(year, month - 1, 1).toLocaleDateString("en-CA");
+    const endDate = new Date(
+      year,
+      month,
+      0,
+      23,
+      59,
+      59,
+      999
+    ).toLocaleDateString("en-CA");
 
-    const attendanceRecord = await AttendanceModel.findOne({ username });
-    if (!attendanceRecord) {
-      return res.status(200).json([]);
-    }
+    // Query to fetch users with status "Leave" in the given month/year
+    const attendances = await AttendanceModel.find({
+      username,
+      attendanceRecords: {
+        $elemMatch: {
+          from: { $gte: startDate, $lte: endDate },
+          status: "Week Off",
+        },
+      },
+    }).select("username attendanceRecords");
 
-    const weekOffs = attendanceRecord.attendance
-      .filter(
-        (entry) =>
-          new Date(entry.date) >= startDate &&
-          new Date(entry.date) <= endDate &&
-          entry.type === "Week Off"
-      )
-      .sort((a, b) => new Date(a.date) - new Date(b.date)); // Sort by date
+    // Flatten and restructure the result
+    const result = attendances.flatMap((user) =>
+      user.attendanceRecords
+        .filter(
+          (record) =>
+            record.status === "Week Off" &&
+            record.from >= startDate &&
+            record.from <= endDate
+        )
+        .map((record) => ({
+          from: record.from,
+          status: record.approval_status,
+        }))
+    );
 
-    res.status(200).json(weekOffs);
+    res.status(200).json(result);
   } catch (error) {
-    console.error(error);
-    res.status(500).send("Internal Server Error");
+    console.error("Error fetching all users' leaves:", error);
+    res.status(500).json({
+      message: "Internal Server Error",
+      error: error.message,
+    });
   }
 };
 

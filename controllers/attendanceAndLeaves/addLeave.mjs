@@ -1,177 +1,137 @@
-import UserModel from "../../model/userModel.mjs";
+import AttendanceModel from "../../model/attendanceModel.mjs";
 import jwt from "jsonwebtoken";
-import addNotification from "../../utils/addNotification.mjs";
 import sendDepartmentPushNotifications from "../../utils/sendDepartmentPushNotifications.mjs";
 import convertDateFormat from "../../utils/convertDateFormat.mjs";
-import mongoose from "mongoose";
+import moment from "moment";
 
 const addLeave = async (req, res) => {
   try {
     const token = res.locals.token;
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const username = decoded.username;
+    const monthlyPaidLeaves = process.env.MONTHLY_PAID_LEAVES;
 
     const { from, to, reason, sick_leave, medical_certificate } = req.body;
 
-    const startDate = new Date(from);
-    const endDate = new Date(to);
-
-    let userLeave = await UserModel.findOne({ username });
-
-    const monthEntriesToPush = [];
-    let currentDate = new Date(startDate);
-    let lastLeaveId = null; // Track the last generated leaveId
-
-    while (currentDate <= endDate) {
-      const monthYear = `${currentDate.getFullYear()}-${String(
-        currentDate.getMonth() + 1
-      ).padStart(2, "0")}`;
-
-      const nextMonth = new Date(
-        currentDate.getFullYear(),
-        currentDate.getMonth() + 1,
-        1
-      );
-      const rangeEnd = endDate < nextMonth ? endDate : new Date(nextMonth - 1);
-
-      let monthEntry = userLeave.leaves.find(
-        (entry) => entry.month_year === monthYear
-      );
-
-      if (!monthEntry) {
-        monthEntry = {
-          month_year: monthYear,
-          leaves: [],
-          totalPaidLeaves: 1.5,
-        };
-        monthEntriesToPush.push(monthEntry); // Push new month entry if not found
-      }
-
-      const existingLeave = monthEntry.leaves.find(
-        (leave) =>
-          leave.from.getTime() === currentDate.getTime() &&
-          leave.to.getTime() === rangeEnd.getTime()
-      );
-
-      if (!existingLeave) {
-        const leaveDaysInRange =
-          Math.floor((rangeEnd - currentDate) / (1000 * 60 * 60 * 24)) + 1;
-
-        if (isNaN(leaveDaysInRange) || leaveDaysInRange <= 0) {
-          throw new Error("Invalid leave duration");
-        }
-
-        let paidLeaves = 0;
-        let unpaidLeaves = 0;
-
-        let remainingPaidLeaves = monthEntry.totalPaidLeaves || 1.5;
-
-        if (remainingPaidLeaves === 0) {
-          paidLeaves = 0;
-          unpaidLeaves = leaveDaysInRange;
-        } else {
-          if (currentDate.getMonth() === rangeEnd.getMonth()) {
-            paidLeaves = Math.min(remainingPaidLeaves, leaveDaysInRange);
-            unpaidLeaves = leaveDaysInRange - paidLeaves;
-          } else {
-            const daysInCurrentMonth = new Date(
-              currentDate.getFullYear(),
-              currentDate.getMonth() + 1,
-              0
-            ).getDate();
-            const daysLeftInCurrentMonth =
-              daysInCurrentMonth - currentDate.getDate() + 1;
-
-            const paidInCurrentMonth = Math.min(
-              remainingPaidLeaves,
-              daysLeftInCurrentMonth
-            );
-            paidLeaves += paidInCurrentMonth;
-
-            const remainingLeaveDays = leaveDaysInRange - paidInCurrentMonth;
-            paidLeaves += Math.min(remainingPaidLeaves, remainingLeaveDays);
-
-            unpaidLeaves = leaveDaysInRange - paidLeaves;
-          }
-        }
-
-        paidLeaves = isNaN(paidLeaves) ? 0 : paidLeaves;
-        unpaidLeaves = isNaN(unpaidLeaves) ? 0 : unpaidLeaves;
-
-        remainingPaidLeaves -= paidLeaves;
-        remainingPaidLeaves = Math.max(remainingPaidLeaves, 0);
-
-        const leaveId = new mongoose.Types.ObjectId();
-        lastLeaveId = leaveId; // Update the lastLeaveId for each generated leave
-
-        const leaveEntry = {
-          _id: leaveId,
-          from: currentDate,
-          to: rangeEnd,
-          reason,
-          sick_leave,
-          medical_certificate,
-          paidLeaves: paidLeaves,
-          unpaidLeaves: unpaidLeaves,
-          status: "Pending",
-        };
-
-        monthEntry.leaves.push(leaveEntry);
-        monthEntry.totalPaidLeaves = remainingPaidLeaves;
-        userLeave.markModified("leaves");
-      } else {
-        return res.status(409).json({
-          message: "Already applied for leave in this date range",
-        });
-      }
-
-      currentDate = new Date(nextMonth);
+    const fromDate = moment(from, "YYYY-MM-DD");
+    const toDate = moment(to, "YYYY-MM-DD");
+    if (!fromDate.isValid() || !toDate.isValid()) {
+      return res.status(400).json({ message: "Invalid date format." });
     }
 
-    userLeave.leaves.push(...monthEntriesToPush);
-    const savedUserLeave = await userLeave.save();
+    const attendance = await AttendanceModel.findOne({
+      username,
+    });
 
-    const io = req.app.get("io");
-
-    if (lastLeaveId) {
-      // Use the last generated leaveId for the notification
-      addNotification(
-        io,
-        decoded.department,
-        "Leave Request",
-        `${username} has applied for leave from ${convertDateFormat(
-          from
-        )} to ${convertDateFormat(to)}.`,
-        decoded.rank,
-        lastLeaveId
-      );
+    if (!attendance) {
+      return res.status(404).json({ message: "User not found." });
     }
 
-    const payload = {
-      notification: {
-        title: `Leave Request`,
-        body: `${username} has applied for leave from ${convertDateFormat(
-          from
-        )} to ${convertDateFormat(to)}.`,
-        image:
-          "https://paymaster-document.s3.ap-south-1.amazonaws.com/kyc/personal.webp/favicon.png",
-      },
+    // Check for overlapping leave dates
+    const hasOverlappingLeave = attendance.attendanceRecords.some((record) => {
+      if (record.type !== "Leave") return false;
+
+      const recordFrom = moment(record.from, "YYYY-MM-DD");
+      const recordTo = moment(record.to, "YYYY-MM-DD");
+
+      // Check if the date ranges overlap
+      const isOverlapping =
+        (fromDate >= recordFrom && fromDate <= recordTo) || // New start date falls within existing leave
+        (toDate >= recordFrom && toDate <= recordTo) || // New end date falls within existing leave
+        (fromDate <= recordFrom && toDate >= recordTo); // New leave completely encompasses existing leave
+
+      return isOverlapping;
+    });
+
+    if (hasOverlappingLeave) {
+      return res.status(400).json({
+        message:
+          "Leave already applied for this time range or overlapping dates.",
+      });
+    }
+
+    // Calculate days in each month
+    const monthlyDays = {};
+    let currentDate = fromDate.clone();
+
+    while (currentDate <= toDate) {
+      const monthKey = `${currentDate.year()}-${currentDate.month() + 1}`;
+      monthlyDays[monthKey] = (monthlyDays[monthKey] || 0) + 1;
+      currentDate.add(1, "days");
+    }
+
+    const calculateLeaveBalance = (existingTotal = 0, daysInMonth) => {
+      const totalLeaves = existingTotal + daysInMonth;
+      return {
+        totalLeaves,
+        paidLeaves: Math.min(totalLeaves, monthlyPaidLeaves),
+        unpaidLeaves: Math.max(0, totalLeaves - monthlyPaidLeaves),
+      };
     };
 
+    // Update leave balance for each affected month
+    for (const monthKey of Object.keys(monthlyDays)) {
+      const [year, month] = monthKey.split("-").map(Number);
+      const daysInThisMonth = monthlyDays[monthKey];
+
+      let leaveBalanceRecord = attendance.leaveBalance.find(
+        (lb) => lb.month === month && lb.year === year
+      );
+
+      if (!leaveBalanceRecord) {
+        const balance = calculateLeaveBalance(0, daysInThisMonth);
+        attendance.leaveBalance.push({
+          month,
+          year,
+          ...balance,
+        });
+      } else {
+        const balance = calculateLeaveBalance(
+          leaveBalanceRecord.totalLeaves,
+          daysInThisMonth
+        );
+        Object.assign(leaveBalanceRecord, balance);
+      }
+    }
+
+    const leaveRecord = {
+      from,
+      to,
+      reason,
+      sick_leave,
+      medical_certificate,
+      type: "Leave",
+      status: "Leave",
+      approval_status: "Pending",
+      appliedOn: moment().format("YYYY-MM-DD"),
+    };
+
+    // Add new record
+    attendance.attendanceRecords.push(leaveRecord);
+    await attendance.save();
+
     await sendDepartmentPushNotifications(
-      decoded.username,
+      username,
       decoded.department,
       decoded.rank,
-      payload
+      {
+        notification: {
+          title: "Leave Request",
+          body: `${username} has applied for leave from ${convertDateFormat(
+            from
+          )} to ${convertDateFormat(to)}.`,
+          image:
+            "https://paymaster-document.s3.ap-south-1.amazonaws.com/kyc/personal.webp/favicon.png",
+        },
+      }
     );
 
     res.status(200).json({
       message: "Leave added successfully.",
-      totalPaidLeaves: savedUserLeave.totalPaidLeaves,
-      leaves: savedUserLeave.leaves,
+      leaveBalance: attendance.leaveBalance,
     });
   } catch (error) {
-    console.error("Error adding leave:", error);
+    console.error("Error managing leave:", error);
     res.status(500).json({ message: "Internal Server Error." });
   }
 };

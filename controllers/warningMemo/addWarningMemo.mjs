@@ -1,3 +1,82 @@
+/**
+ * @swagger
+ * /api/add-warning-memo:
+ *   post:
+ *     summary: Add a warning memo for a user
+ *     description: This route allows adding a warning memo to a user. It checks if required fields are provided and sends a push notification to the user if they have an FCM token. A valid session token must be included for authentication.
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               username:
+ *                 type: string
+ *                 example: "john_doe"
+ *               subject:
+ *                 type: string
+ *                 example: "Late Attendance"
+ *               description:
+ *                 type: string
+ *                 example: "Employee has been marked absent for 5 consecutive days."
+ *     responses:
+ *       201:
+ *         description: Successfully added the warning memo to the user's record.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Warning memo added successfully"
+ *       400:
+ *         description: Missing required fields
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: "Missing required fields"
+ *       404:
+ *         description: User not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "User not found"
+ *       401:
+ *         description: Unauthorized, No token provided or invalid token
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Unauthorized: No token provided"
+ *       500:
+ *         description: Internal server error if something goes wrong.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Something went wrong"
+ *     tags:
+ *       - Warning Memo
+ */
+
 import UserModel from "../../model/userModel.mjs";
 import sendPushNotifications from "../../utils/sendPushNotifications.mjs";
 import { cacheResponse } from "../../utils/cacheResponse.mjs";
@@ -53,7 +132,6 @@ const addWarningMemo = async (req, res) => {
 
     res.status(201).send({
       message: "Warning memo added successfully",
-      user: updatedUser,
     });
   } catch (error) {
     console.error("Error adding warning memo:", error);

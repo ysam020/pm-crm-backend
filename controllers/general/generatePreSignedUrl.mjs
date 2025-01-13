@@ -1,3 +1,70 @@
+/**
+ * @swagger
+ * /api/generate-presigned-url:
+ *   post:
+ *     summary: Generate a pre-signed URL for uploading files to S3
+ *     description: This endpoint generates a pre-signed URL that allows clients to upload files directly to an S3 bucket. The URL is valid for 5 minutes.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               folderName:
+ *                 type: string
+ *                 example: "uploads"
+ *               fileName:
+ *                 type: string
+ *                 example: "example.jpg"
+ *               fileType:
+ *                 type: string
+ *                 example: "image/jpeg"
+ *     responses:
+ *       200:
+ *         description: A pre-signed URL is generated successfully for file upload.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 url:
+ *                   type: string
+ *                   example: "https://example-bucket.s3.amazonaws.com/uploads/example.jpg?AWSAccessKeyId=AKIA...&Signature=..."
+ *       400:
+ *         description: Bad Request - Missing one or more required fields (folderName, fileName, fileType)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Missing required fields"
+ *       401:
+ *         description: Unauthorized - Invalid AWS credentials or insufficient permissions.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Unauthorized - Invalid AWS credentials or insufficient permissions."
+ *       500:
+ *         description: Internal Server Error - Error generating the pre-signed URL, e.g., S3 client failure.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Error generating pre-signed URL"
+ *     tags:
+ *       - Upload to AWS S3
+ */
+
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import dotenv from "dotenv";

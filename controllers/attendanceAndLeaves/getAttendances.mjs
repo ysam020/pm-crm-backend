@@ -10,96 +10,67 @@ const getAttendances = async (req, res) => {
 
     const { month, year } = req.params;
 
-    const currentDate = new Date(); // Today's date
-    const currentMonth = currentDate.getMonth() + 1; // Current month (1-indexed)
-    const currentYear = currentDate.getFullYear(); // Current year
-
-    // If the requested month is the same as the current month, limit data up to today's date
-    const shouldLimitData =
-      currentMonth === parseInt(month, 10) &&
-      currentYear === parseInt(year, 10);
-
-    // Convert month and year to start and end of the month
-    const startDate = new Date(year, month - 1, 1); // month - 1 because JavaScript months are 0-indexed
-    const endDate = new Date(year, month, 0); // Get the last date of the month
-
-    // Fetch attendance for the user
-    const attendanceRecord = await AttendanceModel.findOne({ username });
-
-    // If no attendance record exists, return "Leave" for all days of the month up to today
-    if (!attendanceRecord) {
-      const attendanceReport = [];
-      const daysInMonth = new Date(year, month, 0).getDate(); // Get the number of days in the month
-      for (let day = 1; day <= daysInMonth; day++) {
-        const dateToCheck = new Date(year, month - 1, day);
-        if (shouldLimitData && dateToCheck > currentDate) {
-          break; // Stop adding attendance data after today for the current month
-        }
-
-        attendanceReport.push({
-          date: dateToCheck,
-          status: "Leave", // Default to "Leave" for all days
-          timeIn: "",
-          timeOut: "",
-          remarks: "",
-        });
-      }
-      return res.status(200).json(attendanceReport);
+    if (!month || !year || month < 1 || month > 12) {
+      return res.status(400).send({ message: "Invalid month or year" });
     }
 
-    const attendanceData = attendanceRecord.attendance;
+    const queriedMonth = parseInt(month, 10);
+    const queriedYear = parseInt(year, 10);
+    const currentDate = new Date();
+    const currentMonth = currentDate.getMonth() + 1;
+    const currentYear = currentDate.getFullYear();
 
-    // Filter the attendance data for the specified month and year
-    const filteredAttendance = attendanceData.filter((record) => {
-      const recordDate = new Date(record.date);
-      return recordDate >= startDate && recordDate <= endDate;
-    });
+    // Determine the number of days in the queried month
+    const daysInMonth = new Date(queriedYear, queriedMonth, 0).getDate();
 
-    // Map attendance data by date for easier lookup
-    const attendanceMap = new Map();
-    filteredAttendance.forEach((record) => {
-      const recordDate = new Date(record.date);
-      recordDate.setHours(0, 0, 0, 0); // Normalize the time to midnight for comparison
-      attendanceMap.set(recordDate.getTime(), {
-        date: recordDate,
-        status: record.type || "Leave", // Use stored type or default to "Leave"
-        timeIn: record.timeIn || "",
-        timeOut: record.timeOut || "",
-        remarks: record.remarks || "",
-      });
-    });
+    const endDay =
+      queriedYear === currentYear && queriedMonth === currentMonth
+        ? currentDate.getDate() // Only include dates up to today for the current month
+        : daysInMonth; // Include the entire month for past/future months
 
-    // Generate the attendance report for the specified month
-    const attendanceReport = [];
-    const daysInMonth = new Date(year, month, 0).getDate(); // Get the number of days in the month
-    for (let day = 1; day <= daysInMonth; day++) {
-      const dateToCheck = new Date(year, month - 1, day);
-      if (shouldLimitData && dateToCheck > currentDate) {
-        break; // Stop adding attendance data after today for the current month
-      }
-
-      const attendanceForDate = attendanceMap.get(dateToCheck.getTime());
-
-      if (attendanceForDate) {
-        attendanceReport.push({
-          date: dateToCheck,
-          status: attendanceForDate.status,
-          timeIn: attendanceForDate.timeIn,
-          timeOut: attendanceForDate.timeOut,
-          remarks: attendanceForDate.remarks,
-        });
-      } else {
-        attendanceReport.push({
-          date: dateToCheck,
-          status: "Leave", // Default to "Leave" for days with no records
-          timeIn: "",
-          timeOut: "",
-          remarks: "",
-        });
-      }
+    // Build the range of dates
+    const dateRange = [];
+    for (let i = 1; i <= endDay; i++) {
+      const date = new Date(
+        queriedYear,
+        queriedMonth - 1,
+        i
+      ).toLocaleDateString("en-CA");
+      dateRange.push(date);
     }
 
-    res.status(200).json(attendanceReport);
+    // Fetch attendance records for the user
+    const attendanceRecords = await AttendanceModel.findOne({
+      username,
+    }).select("attendanceRecords");
+
+    if (!attendanceRecords) {
+      return res.status(404).json({ message: "No attendance records found" });
+    }
+
+    // Prepare the attendance report
+    const report = dateRange.map((date) => {
+      const recordForDate = attendanceRecords.attendanceRecords.find(
+        (record) => record.from === date
+      );
+
+      return recordForDate
+        ? {
+            date,
+            status: recordForDate.status || "Pending",
+            timeIn: recordForDate.timeIn || "",
+            timeOut: recordForDate.timeOut || "",
+          }
+        : {
+            date,
+            status: "Leave",
+            timeIn: "",
+            timeOut: "",
+          };
+    });
+
+    // Respond with the report
+    res.status(200).json(report);
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Internal Server Error" });

@@ -20,7 +20,12 @@ const swaggerDefinition = {
 // Now you can pass `matchedFiles` to Swagger
 const options = {
   swaggerDefinition,
-  apis: ["./routes/*.mjs", "./routes/**/*.mjs", "./routes/**/**/*.mjs"],
+  apis: [
+    "./routes/*.mjs", // Include files in the `routes` folder
+    "./routes/**/*.mjs", // Include subfolders in `routes`
+    "./controllers/*.mjs", // Include files in the `controllers` folder
+    "./controllers/**/*.mjs", // Include subfolders in `controllers`
+  ],
 };
 
 const swaggerSpec = swaggerJSDoc(options);

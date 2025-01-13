@@ -2,13 +2,29 @@ import mongoose from "mongoose";
 import JobApplicationModel from "../../model/jobApplicationModel.mjs";
 import JobOpeningModel from "../../model/jobOpeneningModel.mjs";
 import UserModel from "../../model/userModel.mjs";
+import { sendOfferLetter } from "../../utils/sendOfferLetter.mjs";
+
+const generateUniqueUsername = async (baseUsername, session) => {
+  let uniqueUsername = baseUsername;
+  let counter = 1;
+
+  while (
+    await UserModel.findOne({ username: uniqueUsername }).session(session)
+  ) {
+    uniqueUsername = `${baseUsername}_${counter}`;
+    counter++;
+  }
+
+  return uniqueUsername;
+};
 
 const hireCandidate = async (req, res) => {
   const session = await mongoose.startSession();
   session.startTransaction();
 
   try {
-    const { aadharNo, jobTitle } = req.body;
+    const { aadharNo, email, jobTitle, salary, joining_date, reference_by } =
+      req.body;
 
     // Find the job application
     const job = await JobApplicationModel.findOne({
@@ -57,14 +73,11 @@ const hireCandidate = async (req, res) => {
       last_name = null;
 
     if (nameParts.length === 1) {
-      // Single character name
       first_name = nameParts[0];
       last_name = "";
     } else if (nameParts.length === 2) {
-      // Two-part name
       [first_name, last_name] = nameParts;
     } else if (nameParts.length > 2) {
-      // More than two parts
       first_name = nameParts[0];
       last_name = nameParts[nameParts.length - 1];
       middle_name = nameParts.slice(1, -1).join(" ");
@@ -73,7 +86,8 @@ const hireCandidate = async (req, res) => {
       return res.status(400).json({ message: "Invalid name format" });
     }
 
-    const username = last_name ? `${first_name}_${last_name}` : first_name;
+    const baseUsername = last_name ? `${first_name}_${last_name}` : first_name;
+    const username = await generateUniqueUsername(baseUsername, session);
 
     const password = process.env.DEFAULT_PASSWORD;
 
@@ -110,6 +124,9 @@ const hireCandidate = async (req, res) => {
       middle_name: middle_name ? middle_name : "",
       last_name: last_name ? last_name : "",
       designation: jobTitle,
+      salary,
+      joining_date,
+      reference_by,
       username,
       password,
       rank,
@@ -117,6 +134,7 @@ const hireCandidate = async (req, res) => {
 
     await newUser.save({ session });
 
+    await sendOfferLetter(job.name, email, jobTitle, salary, joining_date);
     // Commit the transaction
     await session.commitTransaction();
     res.status(200).json({ message: "Hired successfully and user created" });

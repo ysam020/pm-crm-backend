@@ -2,20 +2,18 @@ import AttendanceModel from "../../model/attendanceModel.mjs";
 
 const updateWeekOffStatus = async (req, res) => {
   try {
-    const { _id, status } = req.body;
+    const { _id, status, username } = req.body;
 
-    // Validate input
-    if (!_id || !status) {
-      return res
-        .status(400)
-        .send({ error: "Missing required fields _id or status" });
+    if (!_id || !status || !username) {
+      return res.status(400).send({
+        error: "Missing required fields: _id, status, or username",
+      });
     }
 
-    // Map input status to database status values
+    // Map input status to DB status
     const statusMapping = {
       Approve: "Approved",
       Reject: "Rejected",
-      Withdraw: "Withdrawn",
     };
 
     const dbStatus = statusMapping[status];
@@ -23,26 +21,40 @@ const updateWeekOffStatus = async (req, res) => {
       return res.status(400).send({ error: "Invalid status value" });
     }
 
-    // Update the attendance status
-    const updatedAttendance = await AttendanceModel.findOneAndUpdate(
-      { "attendance._id": _id }, // Match the specific attendance entry
-      { $set: { "attendance.$.status": dbStatus } }, // Update the status field
-      { new: true } // Return the updated document
-    );
+    const attendance = await AttendanceModel.findOne({
+      username,
+      "attendanceRecords._id": _id,
+    });
 
-    if (!updatedAttendance) {
-      return res
-        .status(404)
-        .send({ error: "Attendance record not found for the provided _id" });
+    if (!attendance) {
+      return res.status(404).send({ error: "Attendance record not found" });
     }
 
+    if (dbStatus === "Rejected") {
+      // Remove the rejected week off record from attendanceRecords
+      attendance.attendanceRecords = attendance.attendanceRecords.filter(
+        (record) => record._id.toString() !== _id
+      );
+    } else {
+      // For approved week offs, just update the status
+      const recordIndex = attendance.attendanceRecords.findIndex(
+        (record) => record._id.toString() === _id
+      );
+      attendance.attendanceRecords[recordIndex].approval_status = dbStatus;
+    }
+
+    // Save the updated attendance record
+    await attendance.save();
+
     res.status(200).send({
-      message: "Week Off status updated successfully",
-      data: updatedAttendance,
+      message:
+        status === "Reject"
+          ? "Week off rejected and removed successfully"
+          : "Status updated successfully",
     });
   } catch (error) {
-    console.error(error);
-    res.status(500).send("Internal Server Error");
+    console.error("Error updating week off status:", error);
+    res.status(500).send({ error: "Internal Server Error" });
   }
 };
 

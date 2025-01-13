@@ -1,53 +1,64 @@
-import UserModel from "../../model/userModel.mjs";
+import AttendanceModel from "../../model/attendanceModel.mjs";
 import jwt from "jsonwebtoken";
 
-const getOwnLeaves = async (req, res) => {
+const getUserLeaves = async (req, res) => {
   const { month_year } = req.params;
 
   try {
+    const [year, month] = month_year.split("-").map(Number);
     const token = res.locals.token;
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const username = decoded.username;
 
-    const [year, month] = month_year.split("-").map(Number);
-    const startDate = new Date(year, month - 1, 1);
+    // Start and end dates for the requested month
+    const startDate = new Date(year, month - 1, 1).toLocaleDateString("en-CA");
+    const endDate = new Date(
+      year,
+      month,
+      0,
+      23,
+      59,
+      59,
+      999
+    ).toLocaleDateString("en-CA");
 
-    const leaves = await UserModel.find({
-      username: username,
-      from: { $gte: startDate },
-    });
+    // Query to fetch users with status "Leave" in the given month/year
+    const attendances = await AttendanceModel.find({
+      username,
+      attendanceRecords: {
+        $elemMatch: {
+          from: { $gte: startDate, $lte: endDate },
+          status: "Leave",
+        },
+      },
+    }).select("username attendanceRecords");
 
-    // Helper function to format date
-    const formatDate = (isoDate) => {
-      const date = new Date(isoDate);
-      const day = String(date.getDate()).padStart(2, "0");
-      const month = String(date.getMonth() + 1).padStart(2, "0");
-      const year = date.getFullYear();
-      return `${day}-${month}-${year}`;
-    };
-
-    // Transform data into the desired structure
-    const transformedData = leaves.flatMap((leave) =>
-      leave.leaves.flatMap((monthYearLeave) =>
-        monthYearLeave.leaves.map((item) => ({
-          _id: item._id,
-          username: leave.username,
-          from: formatDate(item.from),
-          to: formatDate(item.to),
-          totalPaidLeaves: leave.totalPaidLeaves,
-          reason: item.reason,
-          sick_leave: item.sick_leave,
-          medical_certificate: item.medical_certificate,
-          status: item.type,
+    // Flatten and restructure the result
+    const result = attendances.flatMap((user) =>
+      user.attendanceRecords
+        .filter(
+          (record) =>
+            record.status === "Leave" &&
+            record.from >= startDate &&
+            record.from <= endDate
+        )
+        .map((record) => ({
+          from: record.from,
+          to: record.to,
+          status: record.approval_status,
+          reason: record.reason || "",
+          medical_certificate: record.medical_certificate || "",
         }))
-      )
     );
 
-    res.status(200).send(transformedData);
+    res.status(200).json(result);
   } catch (error) {
-    console.error(error);
-    res.status(500).send("Internal Server Error");
+    console.error("Error fetching all users' leaves:", error);
+    res.status(500).json({
+      message: "Internal Server Error",
+      error: error.message,
+    });
   }
 };
 
-export default getOwnLeaves;
+export default getUserLeaves;

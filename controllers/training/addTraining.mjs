@@ -1,3 +1,81 @@
+/**
+ * @swagger
+ * /api/add-training:
+ *   post:
+ *     summary: Add a training to the user's profile
+ *     description: This route allows adding a training to a user's profile. The training details such as program, date, duration, provider, and feedback must be provided. A valid session token must be included in the request for authentication.
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               username:
+ *                 type: string
+ *                 example: "john_doe"
+ *               trainingProgram:
+ *                 type: string
+ *                 example: "Leadership Training"
+ *               trainingDate:
+ *                 type: string
+ *                 example: "2023-08-20"
+ *               duration:
+ *                 type: string
+ *                 example: "4 hours"
+ *               trainingProvider:
+ *                 type: string
+ *                 example: "XYZ Corporation"
+ *               feedback:
+ *                 type: string
+ *                 example: "The training was highly informative and beneficial."
+ *     responses:
+ *       201:
+ *         description: Training added successfully to the user's profile
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Training added successfully"
+ *       400:
+ *         description: Missing required fields or invalid data
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: "Missing required fields"
+ *       401:
+ *         description: Unauthorized, No token provided or invalid token
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Unauthorized: No token provided"
+ *       500:
+ *         description: Internal server error if something goes wrong.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Something went wrong"
+ *     tags:
+ *       - Training
+ */
+
 import UserModel from "../../model/userModel.mjs";
 import { cacheResponse } from "../../utils/cacheResponse.mjs";
 
@@ -48,7 +126,6 @@ const addTraining = async (req, res) => {
 
     res.status(201).send({
       message: "Training added successfully",
-      user: updatedUser,
     });
   } catch (error) {
     console.error("Error adding training:", error);

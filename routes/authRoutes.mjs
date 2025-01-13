@@ -19,16 +19,16 @@ import deleteBackupCodes from "../controllers/auth/deleteBackupCodes.mjs";
 const router = express.Router();
 
 router.post("/api/login", login);
-router.get("/api/logout", logout);
+router.post("/api/logout", logout);
 router.get(
   "/api/logout-from-all-sessions",
   verifySession,
   logoutFromAllSessions
 );
-router.put("/api/reset-password", verifySession, resetPassword);
-router.get("/api/enable-two-factor", verifySession, enableTwoFactor);
-router.delete("/api/disable-two-factor", verifySession, disableTwoFactor);
-router.post("/api/send-forgot-password-otp", sendForgotPasswordOtp);
+router.put("/api/reset-password", verifySession, resetPassword),
+  router.get("/api/enable-two-factor", verifySession, enableTwoFactor),
+  router.delete("/api/disable-two-factor", verifySession, disableTwoFactor),
+  router.post("/api/send-forgot-password-otp", sendForgotPasswordOtp);
 router.put("/api/update-password", updatePassword);
 router.get("/api/verify-user", verifySession, verifyUser);
 router.get(

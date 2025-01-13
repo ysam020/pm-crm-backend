@@ -1,3 +1,53 @@
+/**
+ * @swagger
+ * /api/enable-two-factor:
+ *   get:
+ *     summary: Enable two-factor authentication
+ *     description: Enables two-factor authentication for the user. This generates a twoFactorSecret, a QR code, and backup codes (if not available). It also encrypts the secret and backup codes before saving it to the database.
+ *     responses:
+ *       200:
+ *         description: Successfully enabled two-factor authentication
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Two-factor authentication enabled"
+ *                 qrCodeImage:
+ *                   type: string
+ *                   format: uri
+ *                   example: "data:image/png;base64,...."
+ *                 backupCodes:
+ *                   type: array
+ *                   items:
+ *                     type: string
+ *                     example: "12345678"
+ *       404:
+ *         description: User not found - If the user doesn't exist
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "User not found"
+ *       500:
+ *         description: Internal Server Error - Error enabling two-factor authentication
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "An error occurred while enabling 2FA"
+ *     tags:
+ *       - Two Factor Authentication (Google Authenticator)
+ */
+
 import speakeasy from "speakeasy";
 import QRCode from "qrcode";
 import UserModel from "../../model/userModel.mjs";

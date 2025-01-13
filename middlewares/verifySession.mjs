@@ -14,12 +14,8 @@ const verifySession = async (req, res, next) => {
   try {
     // Verify the token
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
-    // Attach user data to the request object
-    req.user = decoded;
-
-    // Find the user in the database
     const username = decoded.username;
+
     let user = await UserModel.findOne({ username });
 
     if (!user) {
@@ -31,7 +27,6 @@ const verifySession = async (req, res, next) => {
 
     // Clean up expired sessions
     user.sessions = user.sessions.filter((session) => session.expiresAt > now);
-
     await user.updateOne({ sessions: user.sessions });
 
     // Check if the session exists in the user's sessions after cleanup

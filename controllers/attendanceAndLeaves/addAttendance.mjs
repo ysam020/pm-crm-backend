@@ -1,21 +1,6 @@
 import AttendanceModel from "../../model/attendanceModel.mjs";
 import jwt from "jsonwebtoken";
-
-// Haversine Formula to calculate distance between two coordinates
-const haversineDistance = (lat1, lon1, lat2, lon2) => {
-  const R = 6371e3; // Earth radius in meters
-  const φ1 = (lat1 * Math.PI) / 180; // Convert latitude to radians
-  const φ2 = (lat2 * Math.PI) / 180; // Convert latitude to radians
-  const Δφ = ((lat2 - lat1) * Math.PI) / 180; // Difference in latitudes
-  const Δλ = ((lon2 - lon1) * Math.PI) / 180; // Difference in longitudes
-
-  const a =
-    Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
-    Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-
-  return R * c; // Distance in meters
-};
+import { checkLocation } from "../../utils/checkLocation.mjs";
 
 const addAttendance = async (req, res) => {
   try {
@@ -27,19 +12,7 @@ const addAttendance = async (req, res) => {
         .send("Invalid field value. Must be 'timeIn' or 'timeOut'");
     }
 
-    // Office coordinates from environment variables
-    const officeLatitude = parseFloat(process.env.LATITUDE);
-    const officeLongitude = parseFloat(process.env.LONGITUDE);
-
-    // Calculate the distance from the office
-    const distance = haversineDistance(
-      officeLatitude,
-      officeLongitude,
-      latitude,
-      longitude
-    );
-
-    // If the distance is greater than 100 meters, reject the request
+    const distance = checkLocation(latitude, longitude);
     if (distance > 100) {
       return res.status(400).json({ message: "Not in office" });
     }
@@ -48,93 +21,90 @@ const addAttendance = async (req, res) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const username = decoded.username;
 
-    // Helper function to get the current time in 24-hour format
-    const getCurrentTime = () => new Date();
-
-    // Get the current date (normalized to midnight of local date)
-    const currentDate = new Date();
-    const localDate = new Date(
-      currentDate.getFullYear(),
-      currentDate.getMonth(),
-      currentDate.getDate()
-    );
-
-    // Get the current time
-    const currentTime = getCurrentTime();
+    const date = new Date().toLocaleDateString("en-CA");
+    const time = new Date().toLocaleTimeString("en-US", {
+      hour: "numeric",
+      minute: "numeric",
+      hour12: true,
+    });
 
     // Check if an attendance entry exists for the current date
     const existingAttendance = await AttendanceModel.findOne({
       username,
-      "attendance.date": localDate,
+      "attendanceRecords.from": date,
+      "attendanceRecords.to": date,
     });
+
+    const calculateStatus = (timeIn, timeOut) => {
+      const timeInDate = new Date(`${date} ${timeIn}`);
+      const timeOutDate = new Date(`${date} ${timeOut}`);
+      const durationInHours = (timeOutDate - timeInDate) / (1000 * 60 * 60); // Convert milliseconds to hours
+
+      if (durationInHours >= 7) return "Present";
+      if (durationInHours >= 5) return "Half Day";
+      return "Leave";
+    };
 
     if (existingAttendance) {
       const updateFields = {
-        [`attendance.$.${field}`]: currentTime,
+        [`attendanceRecords.$.${field}`]: time,
+        "attendanceRecords.$.type": "Attendance", // Always set type to "Attendance"
       };
 
-      // If updating timeOut, calculate the type
+      // Update status dynamically
       if (field === "timeOut") {
-        const timeIn = existingAttendance.attendance.find(
-          (entry) => entry.date.getTime() === localDate.getTime()
+        const timeIn = existingAttendance.attendanceRecords.find(
+          (entry) => entry.from === date
         )?.timeIn;
 
         if (timeIn) {
-          const timeInDate = new Date(timeIn);
-          const durationInHours = (currentTime - timeInDate) / (1000 * 60 * 60); // Convert milliseconds to hours
-
-          let type;
-          if (durationInHours >= 7) {
-            type = "Present";
-          } else if (durationInHours >= 5) {
-            type = "Half Day";
-          } else {
-            type = "Leave";
-          }
-
-          // Include type update
-          updateFields["attendance.$.type"] = type;
+          const status = calculateStatus(timeIn, time);
+          updateFields["attendanceRecords.$.status"] = status;
         }
+      } else {
+        // Default status to "Leave" if `timeOut` is not provided
+        updateFields["attendanceRecords.$.status"] = "Leave";
       }
 
-      // Update the existing record for the current date
       await AttendanceModel.updateOne(
         {
           username,
-          "attendance.date": localDate,
+          "attendanceRecords.from": date,
+          "attendanceRecords.to": date,
         },
         {
           $set: updateFields,
         }
       );
 
-      res.status(200).json({ message: `Updated successfully` });
+      return res.status(200).json({ message: `Updated successfully` });
     } else {
       // Prepare a new attendance object
       const newAttendance = {
-        date: localDate,
-        [field]: currentTime,
+        from: date,
+        to: date,
+        type: "Attendance",
+        status: "Leave", // Default to Leave if timeOut is not available
+        [field]: time,
       };
 
-      // If adding timeOut, set the type based on duration
+      // If adding `timeOut` directly, throw an error since `timeIn` is required first
       if (field === "timeOut") {
-        res
+        return res
           .status(400)
-          .send({ error: "Cannot update timeOut without existing timeIn" });
-        return;
+          .json({ error: "Cannot update timeOut without existing timeIn" });
       }
 
-      // If no record exists for the current date, add a new entry
       const updatedAttendance = await AttendanceModel.findOneAndUpdate(
         { username },
         {
-          $push: { attendance: newAttendance },
+          $push: { attendanceRecords: newAttendance },
         },
         { new: true, upsert: true }
       );
 
-      res.status(201).json({
-        message: `Updated successfully`,
+      return res.status(201).json({
+        message: `Added successfully`,
         data: updatedAttendance,
       });
     }

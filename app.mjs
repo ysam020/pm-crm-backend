@@ -1,8 +1,9 @@
 import connectDB, { connectionCleanup } from "./connectDb.mjs";
-import { setupChangeStream } from "./cs.mjs";
 import configureApp from "./config/appConfig.mjs";
 // Import routes
 import generalRoutes from "./routes/generalRoutes.mjs";
+// Analytics
+import analyticsRoute from "./routes/analyticsRoute.mjs";
 // Auth
 import authRoutes from "./routes/authRoutes.mjs";
 // WebAuthn
@@ -23,12 +24,12 @@ import resignationRoutes from "./routes/resignationRoutes.mjs";
 
 const { app, server } = configureApp();
 
-connectDB().then((mongooseConnection) => {
+connectDB().then(() => {
   connectionCleanup();
-  setupChangeStream(mongooseConnection);
-
   // General
   app.use(generalRoutes);
+  // Analytics
+  app.use(analyticsRoute);
   // Auth
   app.use(authRoutes);
   // WebAuthn

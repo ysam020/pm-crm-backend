@@ -1,3 +1,69 @@
+/**
+ * @swagger
+ * /api/schedule-interview:
+ *   put:
+ *     summary: Schedule an interview and send an email invite
+ *     description: This route schedules an interview for a job application and sends an email to the candidate with an ICS calendar invite.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               jobTitle:
+ *                 type: string
+ *                 example: "Software Engineer"
+ *               email:
+ *                 type: string
+ *                 example: "candidate@example.com"
+ *               interviewDateTime:
+ *                 type: string
+ *                 format: date-time
+ *                 example: "2024-11-15T10:00:00Z"
+ *               interviewStartTime:
+ *                 type: string
+ *                 format: time
+ *                 example: "10:00:00"
+ *               interviewEndTime:
+ *                 type: string
+ *                 format: time
+ *                 example: "11:00:00"
+ *     responses:
+ *       200:
+ *         description: Interview successfully scheduled and email sent.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Interview scheduled"
+ *       404:
+ *         description: Job application not found.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Application not found"
+ *       500:
+ *         description: Internal server error when sending the email or saving the interview date.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Failed to schedule interview"
+ *     tags:
+ *       - Job Applications
+ */
+
 import JobApplicationModel from "../../model/jobApplicationModel.mjs";
 import transporter from "../../utils/transporter.mjs";
 import { Buffer } from "buffer";
@@ -76,7 +142,7 @@ const scheduleInterview = async (req, res) => {
         ],
       });
     } catch (err) {
-      console.log(err);
+      console.error(err);
     }
 
     res.status(200).json({ message: "Interview scheduled" });

@@ -1,3 +1,44 @@
+/**
+ * @swagger
+ * /api/disable-push-notifications:
+ *   delete:
+ *     summary: Disable push notifications for the authenticated user
+ *     description: This route disables push notifications for the authenticated user by clearing their Firebase Cloud Messaging (FCM) tokens. The user must be authenticated via a valid session.
+ *     responses:
+ *       200:
+ *         description: Successfully disabled push notifications for the user.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Push notification disabled"
+ *       404:
+ *         description: User not found. The user with the provided session token doesn't exist in the database.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "User not found"
+ *       500:
+ *         description: Internal server error. Failed to disable push notifications.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Failed to disable push notifications"
+ *     tags:
+ *       - Push Notifications
+ */
+
 import UserModel from "../../model/userModel.mjs";
 import jwt from "jsonwebtoken";
 

@@ -73,44 +73,6 @@ const trainingSchema = new Schema({
   },
 });
 
-// Leave schema
-const leaveSchema = new Schema({
-  month_year: {
-    type: String,
-  },
-  totalPaidLeaves: {
-    type: Number,
-  },
-  leaves: [
-    {
-      from: {
-        type: Date,
-      },
-      to: {
-        type: Date,
-      },
-      reason: {
-        type: String,
-      },
-      sick_leave: {
-        type: Boolean,
-      },
-      medical_certificate: {
-        type: String,
-      },
-      paidLeaves: {
-        type: Number,
-      },
-      unpaidLeaves: {
-        type: Number,
-      },
-      status: {
-        type: String,
-      },
-    },
-  ],
-});
-
 // Event Schema
 const eventSchmea = new Schema({
   title: { type: String },
@@ -150,6 +112,13 @@ const userSchema = new Schema(
       },
     ],
     note: {
+      type: String,
+    },
+    // Hiring
+    salary: {
+      type: String,
+    },
+    reference_by: {
       type: String,
     },
     ////////////////////////////////////////////////////////////////// KYC
@@ -256,6 +225,15 @@ const userSchema = new Schema(
     electricity_bill: {
       type: String,
     },
+    pcc: {
+      type: String,
+    },
+    dra: {
+      type: Boolean,
+    },
+    dra_certificate: {
+      type: String,
+    },
     pf_no: {
       type: String,
     },
@@ -284,7 +262,6 @@ const userSchema = new Schema(
     // Module fields
     appraisals: [appraisalSchema],
     trainings: [trainingSchema],
-    leaves: [leaveSchema],
     warningMemos: [warningMemoSchema],
     events: [eventSchmea],
     // Password reset fields

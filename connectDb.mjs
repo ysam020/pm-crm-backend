@@ -15,7 +15,7 @@ const connectDB = async () => {
     mongoose.set("bufferCommands", false);
 
     // Connect to MongoDB
-    const connection = await mongoose.connect(MONGODB_URI, {
+    await mongoose.connect(MONGODB_URI, {
       minPoolSize: 100,
       maxPoolSize: 500,
       serverSelectionTimeoutMS: 20000,
@@ -24,9 +24,6 @@ const connectDB = async () => {
       retryWrites: true,
       family: 4,
     });
-
-    console.log("Successfully connected to MongoDB");
-    return connection; // Return the connection instance
   } catch (error) {
     console.error("Error connecting to MongoDB Atlas:", error.message);
     process.exit(1); // Exit with failure if connection fails

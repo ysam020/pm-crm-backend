@@ -1,7 +1,5 @@
-import UserModel from "../../model/userModel.mjs";
 import AttendanceModel from "../../model/attendanceModel.mjs";
 import jwt from "jsonwebtoken";
-import { cacheResponse, getCachedData } from "../../utils/cacheResponse.mjs";
 
 const getAttendanceSummary = async (req, res) => {
   try {
@@ -9,111 +7,92 @@ const getAttendanceSummary = async (req, res) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const username = decoded.username;
 
-    const user = await UserModel.findOne({ username });
+    const monthlyPaidLeaves = process.env.MONTHLY_PAID_LEAVES;
 
-    if (!user) {
-      return res.status(404).send("User not found");
-    }
+    const year = new Date().getFullYear();
+    const month = new Date().getMonth() + 1;
 
-    const cacheKey = `attendance-summary:${username}`;
+    // Start and end dates for the month
+    const startDate = new Date(year, month - 1, 1).toLocaleDateString("en-CA");
+    const endDate = new Date(
+      year,
+      month,
+      0,
+      23,
+      59,
+      59,
+      999
+    ).toLocaleDateString("en-CA");
 
-    // Check for cached response
-    const cachedData = await getCachedData(cacheKey);
-    if (cachedData) {
-      return res.status(200).send(cachedData);
-    }
+    const totalDaysInMonth = new Date(year, month, 0).getDate();
+    const workingDays = totalDaysInMonth - 4; // Assuming 4 week-offs
 
-    const currentYear = new Date().getFullYear();
-    const currentMonth = new Date().getMonth(); // Current month (0-indexed)
-    const startDate = new Date(currentYear, currentMonth, 1);
-    const endDate = new Date(currentYear, currentMonth + 1, 0);
+    // Fetch attendance records for the user
+    const attendances = await AttendanceModel.findOne({
+      username,
+      "attendanceRecords.from": { $gte: startDate, $lte: endDate },
+    }).select("attendanceRecords leaveBalance");
 
-    const today = new Date();
+    const currentDay = new Date().getDate();
 
-    // Get the total days in the current month up to today
-    const totalDaysUpToToday = today.getDate();
+    // Initialize counters
+    let presents = 0;
+    let leaves = 0;
+    let weekOffs = 0;
 
-    // Get attendance records for the current user
-    const attendanceRecord = await AttendanceModel.findOne({ username });
+    // Check if attendance data exists
+    if (attendances && attendances.attendanceRecords) {
+      // Generate the full date range for the entire month
+      const fullMonthDateRange = Array.from(
+        { length: totalDaysInMonth },
+        (_, i) => new Date(year, month - 1, i + 1).toLocaleDateString("en-CA")
+      );
 
-    // Get the total days in the current month
-    const totalDaysInMonth = new Date(
-      currentYear,
-      currentMonth + 1,
-      0
-    ).getDate();
+      for (const date of fullMonthDateRange) {
+        const record = attendances?.attendanceRecords.find(
+          (item) => item.from === date
+        );
 
-    // Calculate working days (excluding 4 week offs)
-    const workingDays = totalDaysInMonth - 4;
-
-    if (!attendanceRecord) {
-      return res.status(200).send({
-        workingDays,
-        presentCount: 0,
-        totalLeaves: 0,
-        paidLeaves: 0,
-        unpaidLeaves: 0,
-        weekOffsCount: 0,
-      });
-    }
-
-    // Extract attendance entries for the current month
-    const currentMonthAttendance = attendanceRecord.attendance.filter(
-      (entry) =>
-        new Date(entry.date) >= startDate && new Date(entry.date) <= endDate
-    );
-
-    // Create a map of all recorded dates for quick lookup
-    const recordedDates = new Set(
-      currentMonthAttendance.map((entry) =>
-        new Date(entry.date).toISOString().slice(0, 10)
-      )
-    );
-
-    // Calculate missing days (treated as leaves)
-    const missingDaysCount = Array.from(
-      { length: totalDaysUpToToday },
-      (_, i) => {
-        const date = new Date(currentYear, currentMonth, i + 1)
-          .toISOString()
-          .slice(0, 10); // Format: YYYY-MM-DD
-        return date;
+        if (record) {
+          switch (record.status) {
+            case "Present":
+              presents++;
+              break;
+            case "Week Off":
+              weekOffs++;
+              break;
+            case "Leave":
+              leaves++;
+              break;
+            default:
+              break;
+          }
+        } else {
+          // Dates beyond the current day won't count as leaves
+          if (new Date(date) <= new Date()) {
+            leaves++;
+          }
+        }
       }
-    ).filter((date) => !recordedDates.has(date)).length;
+    } else {
+      // No attendance data at all, assume all dates up to today are leaves
+      leaves = currentDay;
+    }
 
-    // Count explicitly recorded leaves
-    const markedLeaves = currentMonthAttendance.filter(
-      (entry) => entry.type === "Leave"
-    ).length;
+    const paidLeaves = leaves <= monthlyPaidLeaves ? leaves : monthlyPaidLeaves;
+    const unpaidLeaves =
+      leaves > monthlyPaidLeaves ? leaves - monthlyPaidLeaves : 0;
 
-    // Total leaves = marked leaves + missing days
-    const totalLeaves = markedLeaves + missingDaysCount;
-
-    // Calculate paid and unpaid leaves
-    const maxPaidLeaves = 1.5; // Fixed allowance of 1.5 paid leaves per month
-    const paidLeaves = Math.min(totalLeaves, maxPaidLeaves); // Paid leaves cannot exceed the allowance
-    const unpaidLeaves = totalLeaves - paidLeaves; // Remaining leaves are unpaid
-
-    // Calculate other attendance details
-    const presentCount = currentMonthAttendance.filter(
-      (entry) => entry.type === "Present"
-    ).length;
-
-    const weekOffsCount = currentMonthAttendance.filter(
-      (entry) => entry.type === "Week Off"
-    ).length;
-
-    const response = {
+    const result = {
       workingDays,
-      presentCount,
-      totalLeaves,
+      presents,
+      leaves,
+      weekOffs,
       paidLeaves,
       unpaidLeaves,
-      weekOffsCount,
     };
-    await cacheResponse(cacheKey, response);
 
-    res.status(200).send(response);
+    res.status(200).json(result);
   } catch (error) {
     console.error(error);
     res.status(500).send("Internal Server Error");

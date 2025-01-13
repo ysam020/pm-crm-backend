@@ -1,4 +1,5 @@
 import ResignationModel from "../../model/resignationModel.mjs";
+import UserModel from "../../model/userModel.mjs";
 import addNotification from "../../utils/addNotification.mjs";
 import sendDepartmentPushNotifications from "../../utils/sendDepartmentPushNotifications.mjs";
 import jwt from "jsonwebtoken";
@@ -10,21 +11,48 @@ const addResignation = async (req, res) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const username = decoded.username;
     const _id = new mongoose.Types.ObjectId();
-    // Create a new instance of the model
-    const resignation = new ResignationModel();
 
-    // Assign all properties from req.body to the model instance
-    Object.assign(resignation, { ...req.body, username, _id });
+    const user = await UserModel.findOne({ username });
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
 
-    // Save the instance to the database
-    await resignation.save();
+    const notice_period = user.rank === 4 ? 30 : 60;
 
+    const resignation_date = new Date();
+    const resignation_date_str = resignation_date.toISOString().split("T")[0];
+    resignation_date.setDate(resignation_date.getDate() + notice_period);
+    const last_date = resignation_date.toISOString().split("T")[0]; // Format the last date
+
+    // Prepare the document data for insert
+    const resignationData = {
+      ...req.body,
+      username,
+      notice_period,
+      last_date,
+      resignation_date: resignation_date_str,
+    };
+
+    // Find a document by username and update it, or insert a new one
+    const resignation = await ResignationModel.findOneAndUpdate(
+      { username }, // Query to find the document
+      {
+        $set: { ...resignationData }, // Set fields (excluding _id)
+        $setOnInsert: { _id }, // Assign _id only on insert
+      },
+      { upsert: true, new: true } // Create if not exists, return the updated/new document
+    );
+
+    const io = req.app.get("io");
+
+    // Add a notification
     addNotification(
+      io,
       decoded.department,
       "Resignation",
       `${username} has applied for resignation`,
       decoded.rank,
-      _id
+      resignation._id
     );
 
     const payload = {

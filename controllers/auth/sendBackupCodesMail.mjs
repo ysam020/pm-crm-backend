@@ -1,3 +1,44 @@
+/**
+ * @swagger
+ * /api/send-backup-codes-email:
+ *   get:
+ *     summary: Send backup codes via email
+ *     description: This route sends an email to the user with their backup codes in a CSV format as an attachment. The email is sent using AWS SES, and the backup codes are decrypted before being attached as a CSV file.
+ *     responses:
+ *       200:
+ *         description: Email sent successfully with the backup codes attached.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Email sent successfully!"
+ *       404:
+ *         description: User not found in the database.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "User not found"
+ *       500:
+ *         description: Internal server error. Failed to send email due to server issues.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Failed to send email"
+ *     tags:
+ *       - Backup Codes
+ */
+
 import jwt from "jsonwebtoken";
 import UserModel from "../../model/userModel.mjs";
 import dotenv from "dotenv";
@@ -81,8 +122,7 @@ const sendBackupCodesMail = async (req, res) => {
 
     try {
       // Send the email via SMTP
-      const a = await transporter.sendMail(mailOptions);
-      console.log(a);
+      await transporter.sendMail(mailOptions);
       res.status(200).json({ message: "Email sent successfully!" });
     } catch (err) {
       console.error("Error sending email:", err);
