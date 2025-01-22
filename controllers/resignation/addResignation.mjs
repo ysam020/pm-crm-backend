@@ -51,8 +51,7 @@ const addResignation = async (req, res) => {
       decoded.department,
       "Resignation",
       `${username} has applied for resignation`,
-      decoded.rank,
-      resignation._id
+      decoded.rank
     );
 
     const payload = {

@@ -175,7 +175,9 @@ const login = async (req, res) => {
       isTwoFactorEnabled,
       useBackupCode,
     } = req.body;
-    const user = await UserModel.findOne({ username });
+
+    const lowerCaseUsername = username.toLowerCase();
+    const user = await UserModel.findOne({ lowerCaseUsername });
     if (!user) {
       return res.status(404).json({ message: "User not registered" });
     }

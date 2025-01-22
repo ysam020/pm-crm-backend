@@ -28,7 +28,7 @@ const configureApp = () => {
     "http://localhost:3000",
     "http://localhost:3001",
     "https://sameer-yadav.site",
-    "http://localhost:53380",
+    "http://localhost:51233",
   ];
 
   app.use(

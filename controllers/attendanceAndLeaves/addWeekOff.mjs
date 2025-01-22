@@ -2,7 +2,6 @@ import AttendanceModel from "../../model/attendanceModel.mjs";
 import addNotification from "../../utils/addNotification.mjs";
 import sendDepartmentPushNotifications from "../../utils/sendDepartmentPushNotifications.mjs";
 import jwt from "jsonwebtoken";
-import mongoose from "mongoose";
 
 const addWeekOff = async (req, res) => {
   try {
@@ -118,8 +117,7 @@ const addWeekOff = async (req, res) => {
         decoded.department,
         "Week Off Update",
         `${username}'s status on ${date} has been updated to Week Off`,
-        decoded.rank,
-        existingEntry._id
+        decoded.rank
       );
 
       const payload = {
@@ -190,11 +188,8 @@ const addWeekOff = async (req, res) => {
       }
     }
 
-    const id = new mongoose.Types.ObjectId();
-
     // Add a new entry with the status "Week Off"
     attendances.attendanceRecords.push({
-      _id: id,
       from: date,
       to: date,
       type: "Week Off",
@@ -212,8 +207,7 @@ const addWeekOff = async (req, res) => {
       decoded.department,
       "Week Off Request",
       `${username} has applied for Week Off on ${date}`,
-      decoded.rank,
-      id
+      decoded.rank
     );
 
     const payload = {

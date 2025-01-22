@@ -43,7 +43,7 @@ const getNotifications = async (req, res) => {
       userNotifications[0].notifications.length === 0
     ) {
       return res
-        .status(404)
+        .status(200)
         .send({ message: "No notifications found for the user" });
     }
 

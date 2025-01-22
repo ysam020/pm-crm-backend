@@ -125,7 +125,7 @@ const verifyUser = async (req, res) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
     const user = await UserModel.findOne({ username: decoded.username }).select(
-      "username rank first_name middle_name last_name employee_photo email modules dob blood_group official_email mobile communication_address_line_1 communication_address_line_2 communication_address_city communication_address_state communication_address_pincode permanent_address_line_1 permanent_address_line_2 permanent_address_city permanent_address_state permanent_address_pincode designation department joining_date bank_account_no bank_name ifsc_code aadhar_no aadhar_photo_front pan_no pan_photo pf_no esic_no backupCodes isTwoFactorEnabled qrCodeImage"
+      "username rank first_name middle_name last_name employee_photo email modules dob blood_group official_email mobile communication_address_line_1 communication_address_line_2 communication_address_city communication_address_state communication_address_pincode permanent_address_line_1 permanent_address_line_2 permanent_address_city permanent_address_state permanent_address_pincode designation department joining_date bank_account_no bank_name ifsc_code aadhar_no aadhar_photo_front pan_no pan_photo pf_no esic_no backupCodes isTwoFactorEnabled qrCodeImage twoFactorSecret"
     );
     const userResponse = user.toObject();
 
@@ -133,6 +133,13 @@ const verifyUser = async (req, res) => {
     if (userResponse.backupCodes && userResponse.backupCodes.length > 0) {
       userResponse.backupCodes = userResponse.backupCodes.map((code) =>
         user.decryptField("backupCodes", code)
+      );
+    }
+
+    if (userResponse.twoFactorSecret) {
+      userResponse.twoFactorSecret = user.decryptField(
+        "twoFactorSecret",
+        user.twoFactorSecret
       );
     }
 

@@ -1,6 +1,7 @@
 import AttendanceModel from "../../model/attendanceModel.mjs";
 import jwt from "jsonwebtoken";
 import sendDepartmentPushNotifications from "../../utils/sendDepartmentPushNotifications.mjs";
+import addNotification from "../../utils/addNotification.mjs";
 import convertDateFormat from "../../utils/convertDateFormat.mjs";
 import moment from "moment";
 
@@ -109,6 +110,18 @@ const addLeave = async (req, res) => {
     // Add new record
     attendance.attendanceRecords.push(leaveRecord);
     await attendance.save();
+
+    const io = req.app.get("io");
+
+    await addNotification(
+      io,
+      decoded.department,
+      "Leave Request",
+      `${username} has applied for leave from ${convertDateFormat(
+        from
+      )} to ${convertDateFormat(to)}.`,
+      decoded.rank
+    );
 
     await sendDepartmentPushNotifications(
       username,

@@ -63,7 +63,7 @@ const credentialCheck = async (req, res) => {
     );
 
     if (!user) {
-      return res.status(404).json({ message: "User not found" });
+      return res.status(200).json({ message: "User not found" });
     }
 
     const isTwoFactorEnabled = user.isTwoFactorEnabled;

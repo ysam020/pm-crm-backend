@@ -93,7 +93,7 @@ const assignModules = async (req, res) => {
     if (socketId) {
       // Emit the event to the specific user's socket
       io.to(socketId).emit("modulesAssigned", {
-        modules,
+        modules: user.modules,
       });
     } else {
       console.warn(`No active socket for user: ${username}`);

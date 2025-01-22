@@ -1,15 +1,7 @@
 import NotificationModel from "../model/notificationModel.mjs";
 
-const addNotification = async (
-  io,
-  department,
-  title,
-  message,
-  rank,
-  leaveId
-) => {
+const addNotification = async (io, department, title, message, rank) => {
   const notificationEntry = {
-    _id: leaveId,
     title: title,
     message: message,
     timeStamp: new Date(),
@@ -25,7 +17,6 @@ const addNotification = async (
   );
 
   io.emit("notification", {
-    _id: leaveId,
     department,
     rank,
     notificationEntry,

@@ -69,6 +69,7 @@ const enableTwoFactor = async (req, res) => {
       name: `Paymaster CRM (${username})`,
     });
 
+    // Encrypt the secret for the user
     user.encryptField("twoFactorSecret", secret.base32);
     user.isTwoFactorEnabled = true;
 
@@ -91,6 +92,7 @@ const enableTwoFactor = async (req, res) => {
     res.status(200).json({
       message: "Two-factor authentication enabled",
       qrCodeImage,
+      twoFactorSecret: secret.base32,
       backupCodes: decryptedBackupCodes,
     });
   } catch (error) {
