@@ -1,3 +1,93 @@
+/**
+ * @swagger
+ * /api/hire-candidate:
+ *   post:
+ *     summary: Hire a candidate and create a new user
+ *     description: Updates the job application status, increments the hired count for the job opening, and creates a new user in the system. Sends an offer letter to the candidate. Requires session-based authentication.
+ *     security:
+ *       - SessionAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               aadharNo:
+ *                 type: string
+ *                 example: "123412341234"
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 example: "candidate@example.com"
+ *               jobTitle:
+ *                 type: string
+ *                 example: "Manager"
+ *               salary:
+ *                 type: number
+ *                 example: 50000
+ *               joining_date:
+ *                 type: string
+ *                 format: date
+ *                 example: "2025-04-15"
+ *               reference_by:
+ *                 type: string
+ *                 example: "John Doe"
+ *     responses:
+ *       200:
+ *         description: Candidate hired successfully and user created.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Hired successfully and user created"
+ *       404:
+ *         description: Application or job opening not found.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Application not found"
+ *       409:
+ *         description: Candidate already hired or vacancies filled.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Candidate already hired"
+ *       400:
+ *         description: Invalid name format.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Invalid name format"
+ *       500:
+ *         description: Internal server error.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Something went wrong"
+ *     tags:
+ *       - Recruitment
+ */
+
 import mongoose from "mongoose";
 import JobApplicationModel from "../../model/jobApplicationModel.mjs";
 import JobOpeningModel from "../../model/jobOpeneningModel.mjs";
@@ -23,13 +113,20 @@ const hireCandidate = async (req, res, next) => {
   session.startTransaction();
 
   try {
-    const { aadharNo, email, jobTitle, salary, joining_date, reference_by } =
-      req.body;
+    const {
+      aadharNo,
+      email,
+      jobTitle,
+      salary,
+      joining_date,
+      reference_by,
+      _id,
+    } = req.body;
 
     // Find the job application
     const job = await JobApplicationModel.findOne({
       aadharNo,
-      jobTitle,
+      jobTitle: _id,
     }).session(session);
     if (!job) {
       await session.abortTransaction();

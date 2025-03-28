@@ -58,7 +58,7 @@
  *                   type: string
  *                   example: "An error occurred while submitting your application. Please try again later."
  *     tags:
- *       - Job Applications
+ *       - Recruitment
  */
 
 import JobApplicationModel from "../../model/jobApplicationModel.mjs";

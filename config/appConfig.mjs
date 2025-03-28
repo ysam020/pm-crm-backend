@@ -11,6 +11,7 @@ import { Server } from "socket.io";
 import passport from "passport";
 import MongoStore from "connect-mongo";
 import session from "express-session";
+import mongoSanitize from "express-mongo-sanitize";
 import "../config/passport.mjs";
 import "../config/passportWebAuthn.mjs";
 import dotenv from "dotenv";
@@ -47,7 +48,7 @@ const configureApp = () => {
     "http://localhost:3000",
     "http://localhost:3001",
     "https://sameer-yadav.site",
-    "http://localhost:50092",
+    "http://localhost:57995",
   ];
 
   app.use(
@@ -95,8 +96,7 @@ const configureApp = () => {
   };
 
   app.use(extendSession);
-
-  app.use(extendSession);
+  app.use(mongoSanitize());
 
   const server = createServer(app);
 
@@ -142,7 +142,18 @@ const configureApp = () => {
   app.set("userSockets", userSockets);
 
   // Swagger documentation
-  app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+  app.use(
+    "/api-docs",
+    swaggerUi.serve,
+    swaggerUi.setup(swaggerSpec, {
+      explorer: true,
+      swaggerOptions: {
+        docExpansion: "none", // Collapses all tags (Admin, Users, etc.)
+        tagsSorter: "alpha", // Sorts tags alphabetically
+        operationsSorter: "alpha", // Sorts operations alphabetically
+      },
+    })
+  );
 
   // Utility function to send message to specific user
   app.locals.sendToUser = (username, eventName, data) => {

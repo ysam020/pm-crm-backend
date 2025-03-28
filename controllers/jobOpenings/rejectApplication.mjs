@@ -52,17 +52,17 @@
  *                   type: string
  *                   example: "Something went wrong"
  *     tags:
- *       - Job Applications
+ *       - Recruitment
  */
 
 import JobApplicationModel from "../../model/jobApplicationModel.mjs";
 
 const rejectApplication = async (req, res, next) => {
   try {
-    const { aadharNo, jobTitle, reason } = req.body;
+    const { aadharNo, reason, _id } = req.body;
     const job = await JobApplicationModel.findOne({
       aadharNo,
-      jobTitle,
+      jobTitle: _id,
     });
     if (!job) {
       return res.status(404).json({ message: "Application not found" });

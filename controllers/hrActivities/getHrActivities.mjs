@@ -51,13 +51,21 @@
  */
 
 import hrActivityModel from "../../model/hrActivityModel.mjs";
+import { cacheResponse, getCachedData } from "../../utils/cacheResponse.mjs";
 
 const getHrActivities = async (req, res, next) => {
   try {
     // Get today's date in yyyy-mm-dd format
+    const cacheKey = `hrActivities`;
+    const cachedData = await getCachedData(cacheKey);
+    if (cachedData) {
+      return res.status(200).send(cachedData);
+    }
+
     const today = new Date().toISOString().split("T")[0];
 
     const data = await hrActivityModel.find({ date: { $gte: today } });
+    await cacheResponse(cacheKey, data);
 
     res.status(200).send(data);
   } catch (error) {

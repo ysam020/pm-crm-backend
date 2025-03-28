@@ -55,6 +55,7 @@ import UserModel from "../../model/userModel.mjs";
 const saveFcmToken = async (req, res, next) => {
   try {
     const username = req.user.username;
+
     const { fcmToken } = req.body;
     // Find the user by username
     const user = await UserModel.findOne({ username });

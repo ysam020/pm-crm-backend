@@ -4,6 +4,7 @@
   },
   "watch": [
     "assets",
+    "changeStreams",
     "config",
     "controllers",
     "middlewares",

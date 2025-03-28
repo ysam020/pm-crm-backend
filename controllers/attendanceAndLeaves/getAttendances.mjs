@@ -3,9 +3,9 @@ import AttendanceModel from "../../model/attendanceModel.mjs";
 const getAttendances = async (req, res, next) => {
   try {
     const username = req.user.username;
-
     const { month, year } = req.params;
 
+    // Validate month and year
     if (!month || !year || month < 1 || month > 12) {
       return res.status(400).send({ message: "Invalid month or year" });
     }
@@ -18,44 +18,48 @@ const getAttendances = async (req, res, next) => {
 
     // Determine the number of days in the queried month
     const daysInMonth = new Date(queriedYear, queriedMonth, 0).getDate();
-
     const endDay =
       queriedYear === currentYear && queriedMonth === currentMonth
-        ? currentDate.getDate() // Only include dates up to today for the current month
-        : daysInMonth; // Include the entire month for past/future months
+        ? currentDate.getDate()
+        : daysInMonth;
 
-    // Build the range of dates
-    const dateRange = [];
-    for (let i = 1; i <= endDay; i++) {
-      const date = new Date(
-        queriedYear,
-        queriedMonth - 1,
-        i
-      ).toLocaleDateString("en-CA");
-      dateRange.push(date);
-    }
+    // Generate date range as a Set for O(1) lookups
+    const dateRangeSet = new Set(
+      Array.from({ length: endDay }, (_, i) =>
+        new Date(queriedYear, queriedMonth - 1, i + 1).toLocaleDateString(
+          "en-CA"
+        )
+      )
+    );
 
     // Fetch attendance records for the user
-    const attendanceRecords = await AttendanceModel.findOne({
-      username,
-    }).select("attendanceRecords");
+    const attendanceRecord = await AttendanceModel.findOne(
+      { username },
+      "attendanceRecords"
+    );
 
-    if (!attendanceRecords) {
+    if (!attendanceRecord) {
       return res.status(404).json({ message: "No attendance records found" });
     }
 
-    // Prepare the attendance report
-    const report = dateRange.map((date) => {
-      const recordForDate = attendanceRecords.attendanceRecords.find(
-        (record) => record.from === date
-      );
+    // Convert attendanceRecords into a HashMap for O(1) lookups
+    const attendanceMap = new Map(
+      attendanceRecord.attendanceRecords.map((record) => [
+        new Date(record.from).toLocaleDateString("en-CA"),
+        record,
+      ])
+    );
 
-      return recordForDate
+    // Generate the attendance report
+    const report = Array.from(dateRangeSet).map((date) => {
+      const record = attendanceMap.get(date);
+
+      return record
         ? {
             date,
-            status: recordForDate.status || "Pending",
-            timeIn: recordForDate.timeIn || "",
-            timeOut: recordForDate.timeOut || "",
+            status: record.status || "Pending",
+            timeIn: record.timeIn || "",
+            timeOut: record.timeOut || "",
           }
         : {
             date,

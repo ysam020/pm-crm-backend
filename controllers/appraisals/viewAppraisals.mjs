@@ -61,7 +61,7 @@
  *       - Appraisal
  */
 
-import UserModel from "../../model/userModel.mjs";
+import AppraisalModel from "../../model/appraisalModel.mjs";
 import { cacheResponse, getCachedData } from "../../utils/cacheResponse.mjs";
 
 const viewAppraisals = async (req, res, next) => {
@@ -76,7 +76,7 @@ const viewAppraisals = async (req, res, next) => {
     }
 
     // If not cached, fetch from the database
-    const user = await UserModel.findOne({ username });
+    const user = await AppraisalModel.findOne({ username });
     if (!user) {
       return res.status(404).send("User not found");
     }

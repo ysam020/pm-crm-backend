@@ -61,7 +61,7 @@
  *                   type: string
  *                   example: "Failed to schedule interview"
  *     tags:
- *       - Job Applications
+ *       - Recruitment
  */
 
 import JobApplicationModel from "../../model/jobApplicationModel.mjs";
@@ -76,12 +76,10 @@ const scheduleInterview = async (req, res, next) => {
       interviewDateTime,
       interviewStartTime,
       interviewEndTime,
+      _id,
     } = req.body;
 
-    const application = await JobApplicationModel.findOne({
-      jobTitle,
-      email,
-    });
+    const application = await JobApplicationModel.findOne({ jobTitle: _id });
 
     if (!application) {
       return res.status(404).json({ message: "Application not found" });

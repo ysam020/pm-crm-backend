@@ -21,7 +21,7 @@ const sendErrorEmail = async (
 
   // Extract only relevant stack trace (ignore node_modules)
   const stackLines = error.stack
-    .split("\n")
+    ?.split("\n")
     .filter((line) => !line.includes("node_modules"))
     .join("<br>");
 

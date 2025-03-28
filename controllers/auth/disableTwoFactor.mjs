@@ -3,7 +3,7 @@
  * /api/disable-two-factor:
  *   delete:
  *     summary: Disable two-factor authentication
- *     description: Disables two-factor authentication (Google Authenticator) for the user. It also removes the associated twoFactorSecret and QR code.
+ *     description: Disables two-factor authentication for the user. It also removes the associated twoFactorSecret and QR code.
  *     responses:
  *       200:
  *         description: Successfully disabled two-factor authentication
@@ -36,7 +36,7 @@
  *                   type: string
  *                   example: "Failed to disable two-factor authentication"
  *     tags:
- *       - Two Factor Authentication (Google Authenticator)
+ *       - Two Factor Authentication
  */
 
 import UserModel from "../../model/userModel.mjs";

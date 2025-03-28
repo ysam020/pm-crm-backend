@@ -45,7 +45,7 @@
  *                   type: string
  *                   example: "An error occurred while enabling 2FA"
  *     tags:
- *       - Two Factor Authentication (Google Authenticator)
+ *       - Two Factor Authentication
  */
 
 import speakeasy from "speakeasy";

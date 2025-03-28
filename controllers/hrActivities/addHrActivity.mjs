@@ -61,7 +61,7 @@
  */
 
 import hrActivityModel from "../../model/hrActivityModel.mjs";
-import { cacheResponse } from "../../utils/cacheResponse.mjs";
+import { cacheResponse, getCachedData } from "../../utils/cacheResponse.mjs";
 
 const addHrActivity = async (req, res, next) => {
   try {
@@ -71,12 +71,17 @@ const addHrActivity = async (req, res, next) => {
     const newHrActivity = new hrActivityModel(hrActivity);
     await newHrActivity.save();
 
-    // Fetch all HR activities from the database to get the updated list
-    const allHrActivities = await hrActivityModel.find().lean();
+    // Define a general cache key for all HR activities
+    const cacheKey = `hrActivities`;
 
-    // Update the cache with the new list of HR activities
-    const cacheKey = "hrActivities:all";
-    await cacheResponse(cacheKey, allHrActivities);
+    // Check if there is already cached data
+    const cachedActivities = (await getCachedData(cacheKey)) || [];
+
+    // Append the new activity to the existing cache
+    cachedActivities.push(newHrActivity);
+
+    // Store updated data in cache
+    await cacheResponse(cacheKey, cachedActivities);
 
     res.status(201).send({ message: "HR activity added successfully" });
   } catch (error) {

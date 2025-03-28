@@ -11,27 +11,6 @@ import bcrypt from "bcrypt";
 
 const Schema = mongoose.Schema;
 
-// Session schema
-const sessionSchema = new Schema({
-  sessionID: {
-    type: String,
-  },
-  loginAt: {
-    type: Date,
-    default: Date.now,
-  },
-  expiresAt: {
-    type: Date,
-  },
-  userAgent: String,
-  latitude: {
-    type: Number,
-  },
-  longitude: {
-    type: Number,
-  },
-});
-
 // Credential schema
 const CredentialSchema = new mongoose.Schema({
   credentialID: String,
@@ -44,34 +23,6 @@ const CredentialSchema = new mongoose.Schema({
   },
 });
 
-// Appraisal schema
-const appraisalSchema = new Schema({
-  appraisalDate: { type: String },
-  performanceScore: { type: Number },
-  strengths: { type: String },
-  areasOfImprovement: { type: String },
-  feedback: { type: String },
-});
-
-// Training schema
-const trainingSchema = new Schema({
-  trainingProgram: {
-    type: String,
-  },
-  trainingDate: {
-    type: String,
-  },
-  duration: {
-    type: String,
-  },
-  trainingProvider: {
-    type: String,
-  },
-  feedback: {
-    type: String,
-  },
-});
-
 // Event Schema
 const eventSchmea = new Schema({
   title: { type: String },
@@ -79,16 +30,6 @@ const eventSchmea = new Schema({
   startTime: { type: String },
   endTime: { type: String },
   description: { type: String },
-});
-
-// Warning memo schema
-const warningMemoSchema = new Schema({
-  subject: {
-    type: String,
-  },
-  description: {
-    type: String,
-  },
 });
 
 // User schema
@@ -259,9 +200,6 @@ const userSchema = new Schema(
       type: String,
     },
     // Module fields
-    appraisals: [appraisalSchema],
-    trainings: [trainingSchema],
-    warningMemos: [warningMemoSchema],
     events: [eventSchmea],
     // Password reset fields
     resetPasswordOTP: {
@@ -270,7 +208,6 @@ const userSchema = new Schema(
     resetPasswordExpires: {
       type: Date,
     },
-    sessions: [sessionSchema],
     // 2FA fields
     twoFactorSecret: {
       type: String,

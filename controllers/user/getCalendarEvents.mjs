@@ -1,19 +1,28 @@
 import UserModel from "../../model/userModel.mjs";
+import { cacheResponse, getCachedData } from "../../utils/cacheResponse.mjs";
 
 const getCalendarEvents = async (req, res, next) => {
   try {
     const username = req.user.username;
+    const cacheKey = `calendar_events:${username}`;
 
-    // Fetch the user and filter events
+    // Check if data exists in Redis cache
+    const cachedEvents = await getCachedData(cacheKey);
+    if (cachedEvents) {
+      return res.status(200).send(cachedEvents);
+    }
+
+    // Fetch the user and events from MongoDB
     const user = await UserModel.findOne({ username }).select("events");
     if (!user) {
       return res.status(404).send("User not found");
     }
 
-    // Sort the events by date in ascending order (from earliest to latest)
-    user.events.sort((a, b) => {
-      return a.date.localeCompare(b.date); // Compare dates in yyyy-mm-dd format
-    });
+    // Sort events by date (ascending order)
+    user.events.sort((a, b) => a.date.localeCompare(b.date));
+
+    // Cache the result for 1 hour
+    await cacheResponse(cacheKey, user.events);
 
     res.status(200).send(user.events);
   } catch (error) {

@@ -67,7 +67,7 @@
  *       - Training
  */
 
-import UserModel from "../../model/userModel.mjs";
+import TrainingModel from "../../model/trainingModel.mjs";
 import { cacheResponse, getCachedData } from "../../utils/cacheResponse.mjs";
 
 const viewTrainings = async (req, res, next) => {
@@ -82,7 +82,7 @@ const viewTrainings = async (req, res, next) => {
     }
 
     // If not cached, fetch from the database
-    const user = await UserModel.findOne({ username });
+    const user = await TrainingModel.findOne({ username });
     if (!user) {
       return res.status(404).send("User not found");
     }

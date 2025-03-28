@@ -11,8 +11,8 @@ const swaggerDefinition = {
     {
       url:
         process.env.NODE_ENV === "production"
-          ? "https://sameer-yadav.online"
-          : "https://localhost:9002",
+          ? "http://sameer-yadav.online"
+          : "http://localhost:9002",
     },
   ],
 };

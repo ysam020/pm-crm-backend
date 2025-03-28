@@ -75,7 +75,7 @@
  *                   type: string
  *                   example: "A job with the same title is active."
  *     tags:
- *       - Job Openings
+ *       - Recruitment
  */
 
 import JobOpeningModel from "../../model/jobOpeneningModel.mjs";

@@ -25,7 +25,7 @@
  *                   type: string
  *                   example: "An error occurred while fetching job titles. Please try again later."
  *     tags:
- *       - Job Applications
+ *       - Recruitment
  */
 
 import JobOpeningModel from "../../model/jobOpeneningModel.mjs";

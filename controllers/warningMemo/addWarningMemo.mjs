@@ -77,7 +77,7 @@
  *       - Warning Memo
  */
 
-import UserModel from "../../model/userModel.mjs";
+import WaningModel from "../../model/warningModel.mjs";
 import sendPushNotifications from "../../utils/sendPushNotifications.mjs";
 import { cacheResponse } from "../../utils/cacheResponse.mjs";
 
@@ -97,11 +97,11 @@ const addWarningMemo = async (req, res, next) => {
     };
 
     // Use findOneAndUpdate to add or update the document
-    const updatedUser = await UserModel.findOneAndUpdate(
-      { username }, // Filter to find user by username
+    const updatedUser = await WaningModel.findOneAndUpdate(
+      { _id: req.user._id }, // Filter to find user by username
       {
-        $setOnInsert: { username }, // If user does not exist, set username
-        $push: { warningMemos: warningMemo }, // Push the new warning memo into the warning memos array
+        $setOnInsert: { _id: req.user._id, username: req.user.username }, // If user does not exist, set username
+        $push: { warningMemos: warningMemo }, // Push the new training into the training array
       },
       {
         new: true, // Return the modified document

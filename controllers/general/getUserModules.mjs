@@ -75,24 +75,19 @@
 // export default getUserModules;
 
 import UserModel from "../../model/userModel.mjs";
-import path from "path";
-import { fileURLToPath } from "url";
-import protobuf from "protobufjs";
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+import { cacheResponse, getCachedData } from "../../utils/cacheResponse.mjs";
 
 const getUserModules = async (req, res, next) => {
   try {
     const { username } = req.params;
+    const cacheKey = `user_modules:${username}`;
 
-    // Load proto file
-    const root = await protobuf.load(
-      path.join(__dirname, "../../proto/user.proto")
-    );
+    // Check if data is in cache
+    const cachedData = await getCachedData(cacheKey);
 
-    // Get message type
-    const GetUserModules = root.lookupType("userpackage.GetUserModules");
+    if (cachedData) {
+      return res.status(200).json({ modules: cachedData });
+    }
 
     // Find user and select only needed fields
     const user = await UserModel.findOne({ username }).select("modules");
@@ -101,23 +96,11 @@ const getUserModules = async (req, res, next) => {
       return res.status(404).json({ message: "User not found" });
     }
 
-    // Create protobuf message
-    const message = GetUserModules.create({
-      modules: user.modules || [],
-    });
-
-    // Verify message
-    const error = GetUserModules.verify(message);
-    if (error) {
-      throw Error(error);
-    }
-
-    // Encode message
-    const buffer = GetUserModules.encode(message).finish();
+    // Cache the response in Redis (store as base64 to preserve binary data)
+    await cacheResponse(cacheKey, user.modules);
 
     // Send response
-    res.set("Content-Type", "application/x-protobuf");
-    res.send(buffer);
+    return res.status(200).json({ modules: user.modules });
   } catch (err) {
     next(err);
     res.status(500).json({ message: "Something went wrong" });

@@ -62,7 +62,7 @@
  *       - Warning Memo
  */
 
-import UserModel from "../../model/userModel.mjs";
+import WarningModel from "../../model/warningModel.mjs";
 import { cacheResponse, getCachedData } from "../../utils/cacheResponse.mjs";
 
 const viewWarningMemos = async (req, res, next) => {
@@ -77,7 +77,7 @@ const viewWarningMemos = async (req, res, next) => {
     }
 
     // If not cached, fetch from the database
-    const user = await UserModel.findOne({ username });
+    const user = await WarningModel.findOne({ username });
     if (!user) {
       return res.status(404).send("User not found");
     }

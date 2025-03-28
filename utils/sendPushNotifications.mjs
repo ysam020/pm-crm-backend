@@ -1,22 +1,41 @@
-import admin from "./firebaseAdmin.mjs";
+import admin from "../config/firebaseAdmin.mjs";
+import UserModel from "../model/userModel.mjs";
 
 async function sendPushNotifications(user, payload) {
-  //  Send notifications to each token
-  const responses = await Promise.all(
+  if (!user || !user.fcmTokens || user.fcmTokens.length === 0) {
+    return;
+  }
+
+  let failedTokens = new Set();
+
+  // 🚀 Step 1: Attempt to send notifications
+  await Promise.allSettled(
     user.fcmTokens.map(async (token) => {
       try {
-        return await admin.messaging().send({ ...payload, token });
+        await admin.messaging().send({ ...payload, token });
       } catch (error) {
-        console.error("Error sending notification to token:", token, error);
-        return { error }; // Return error for this token
+        // Add failed token to the list if it is invalid or unregistered
+        if (
+          error.code === "messaging/invalid-registration-token" ||
+          error.code === "messaging/registration-token-not-registered"
+        ) {
+          failedTokens.add(token);
+        }
       }
     })
   );
 
-  // Optionally handle responses and log success/errors
-  const failedTokens = responses.filter((resp) => resp.error);
-  if (failedTokens.length > 0) {
-    console.error("Failed to send notifications for tokens:", failedTokens);
+  // Step 2: Remove failed tokens and update user in DB
+  if (failedTokens.size > 0) {
+    const validTokens = user.fcmTokens.filter(
+      (token) => !failedTokens.has(token)
+    );
+
+    await UserModel.findByIdAndUpdate(
+      user._id,
+      { fcmTokens: validTokens },
+      { new: true }
+    );
   }
 }
 

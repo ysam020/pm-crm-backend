@@ -4,7 +4,6 @@ import getEmployeeDepartments from "../controllers/analytics/getEmployeeDepartme
 import getEmployeeDesignations from "../controllers/analytics/getEmployeeDesignations.mjs";
 import getAgeDistribution from "../controllers/analytics/getAgeDistribution.mjs";
 import getJoiningData from "../controllers/analytics/getJoiningData.mjs";
-import employeePerformance from "../controllers/analytics/employeePerformance.mjs";
 
 const router = express.Router();
 
@@ -20,6 +19,5 @@ router.get(
 );
 router.get("/api/get-age-distribution", isAuthenticated, getAgeDistribution);
 router.get("/api/get-joining-data", isAuthenticated, getJoiningData);
-router.get("/api/employee-performance", isAuthenticated, employeePerformance);
 
 export default router;

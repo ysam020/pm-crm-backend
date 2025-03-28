@@ -65,37 +65,35 @@
  */
 
 import UserModel from "../../model/userModel.mjs";
+import { cacheResponse } from "../../utils/cacheResponse.mjs";
 
 const unassignModules = async (req, res, next) => {
   try {
     const { modules, username } = req.body;
-    // Verify that username and modules are provided
     if (!username || !Array.isArray(modules) || modules.length === 0) {
       return res.status(400).send({
         message: "Invalid request: Username and modules are required.",
       });
     }
 
-    // Find the user in MongoDB
     const user = await UserModel.findOne({ username });
-
     if (!user) {
       return res.status(404).send({ message: "User not found." });
     }
 
-    // Remove the modules from the user's list
     user.modules = user.modules.filter((module) => !modules.includes(module));
     await user.save();
+
+    // Update Redis cache
+    const cacheKey = `user_modules:${username}`;
+    await cacheResponse(cacheKey, user.modules);
 
     const io = req.app.get("io");
     const userSockets = req.app.get("userSockets");
     const socketId = userSockets.get(username);
 
     if (socketId) {
-      // Emit the event to the specific user's socket
-      io.to(socketId).emit("modulesUnassigned", {
-        modules: user.modules,
-      });
+      io.to(socketId).emit("modulesUnassigned", { modules: user.modules });
     } else {
       console.warn(`No active socket for user: ${username}`);
     }

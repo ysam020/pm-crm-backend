@@ -1,5 +1,8 @@
 import AttendanceModel from "../../model/attendanceModel.mjs";
 import haversine from "haversine-distance";
+import dotenv from "dotenv";
+
+dotenv.config();
 
 const addAttendance = async (req, res, next) => {
   try {
@@ -11,13 +14,15 @@ const addAttendance = async (req, res, next) => {
         .send("Invalid field value. Must be 'timeIn' or 'timeOut'");
     }
 
-    const OFFICE_LOCATION = { latitude: 23.0225, longitude: 72.5714 };
+    const OFFICE_LOCATION = {
+      latitude: process.env.LATITUDE,
+      longitude: process.env.LONGITUDE,
+    };
 
     if (latitude !== null && longitude !== null) {
       // Calculate distance using haversine formula
       const userLocation = { latitude, longitude };
       const distance = haversine(OFFICE_LOCATION, userLocation);
-
       if (distance > 100) {
         return res.status(400).json({ message: "Not in office" });
       }

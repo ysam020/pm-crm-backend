@@ -1,6 +1,6 @@
 import UserModel from "../../model/userModel.mjs";
 
-const getEvents = async (req, res,next) => {
+const getEvents = async (req, res, next) => {
   try {
     // Get today's date and format as MM-DD
     const today = new Date();

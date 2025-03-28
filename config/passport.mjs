@@ -10,7 +10,9 @@ dotenv.config();
 passport.use(
   new LocalStrategy(async (username, password, done) => {
     try {
-      const user = await User.findOne({ username });
+      const user = await User.findOne({ username }).select(
+        "username password first_name middle_name last_name employee_photo email designation department"
+      );
 
       if (!user) {
         return done(null, false, { message: "Invalid credentials" });

@@ -76,7 +76,7 @@
  *       - Training
  */
 
-import UserModel from "../../model/userModel.mjs";
+import TrainingModel from "../../model/trainingModel.mjs";
 import { cacheResponse } from "../../utils/cacheResponse.mjs";
 
 const addTraining = async (req, res, next) => {
@@ -105,11 +105,11 @@ const addTraining = async (req, res, next) => {
     };
 
     // Use findOneAndUpdate to add or update the document
-    const updatedUser = await UserModel.findOneAndUpdate(
-      { username }, // Filter to find user by username
+    const updatedUser = await TrainingModel.findOneAndUpdate(
+      { _id: req.user._id }, // Filter to find user by username
       {
-        $setOnInsert: { username }, // If user does not exist, set username
-        $push: { trainings: newTraining }, // Push the new training into the trainings array
+        $setOnInsert: { _id: req.user._id, username: req.user.username }, // If user does not exist, set username
+        $push: { trainings: newTraining }, // Push the new training into the training array
       },
       {
         new: true, // Return the modified document

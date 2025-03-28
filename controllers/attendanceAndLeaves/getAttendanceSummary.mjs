@@ -3,82 +3,65 @@ import AttendanceModel from "../../model/attendanceModel.mjs";
 const getAttendanceSummary = async (req, res, next) => {
   try {
     const username = req.user.username;
+    const monthlyPaidLeaves = parseFloat(process.env.MONTHLY_PAID_LEAVES) || 0;
 
-    const monthlyPaidLeaves = process.env.MONTHLY_PAID_LEAVES;
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = today.getMonth() + 1;
 
-    const year = new Date().getFullYear();
-    const month = new Date().getMonth() + 1;
-
-    // Start and end dates for the month
-    const startDate = new Date(year, month - 1, 1).toLocaleDateString("en-CA");
-    const endDate = new Date(
-      year,
-      month,
-      0,
-      23,
-      59,
-      59,
-      999
-    ).toLocaleDateString("en-CA");
-
+    // Get total days in the current month
     const totalDaysInMonth = new Date(year, month, 0).getDate();
-    const workingDays = totalDaysInMonth - 4; // Assuming 4 week-offs
+    const currentDay = today.getDate();
+
+    // Calculate working days assuming 4 week-offs
+    const workingDays = totalDaysInMonth - 4;
 
     // Fetch attendance records for the user
-    const attendances = await AttendanceModel.findOne({
-      username,
-      "attendanceRecords.from": { $gte: startDate, $lte: endDate },
-    }).select("attendanceRecords leaveBalance");
+    const attendanceData = await AttendanceModel.findOne(
+      { username },
+      "attendanceRecords leaveBalance"
+    );
 
-    const currentDay = new Date().getDate();
-
-    // Initialize counters
-    let presents = 0;
-    let leaves = 0;
-    let weekOffs = 0;
-
-    // Check if attendance data exists
-    if (attendances && attendances.attendanceRecords) {
-      // Generate the full date range for the entire month
-      const fullMonthDateRange = Array.from(
-        { length: totalDaysInMonth },
-        (_, i) => new Date(year, month - 1, i + 1).toLocaleDateString("en-CA")
-      );
-
-      for (const date of fullMonthDateRange) {
-        const record = attendances?.attendanceRecords.find(
-          (item) => item.from === date
-        );
-
-        if (record) {
-          switch (record.status) {
-            case "Present":
-              presents++;
-              break;
-            case "Week Off":
-              weekOffs++;
-              break;
-            case "Leave":
-              leaves++;
-              break;
-            default:
-              break;
-          }
-        } else {
-          // Dates beyond the current day won't count as leaves
-          if (new Date(date) <= new Date()) {
-            leaves++;
-          }
-        }
-      }
-    } else {
-      // No attendance data at all, assume all dates up to today are leaves
-      leaves = currentDay;
+    if (!attendanceData || !attendanceData.attendanceRecords) {
+      return res.status(200).json({
+        workingDays,
+        presents: 0,
+        leaves: currentDay, // All past days are leaves
+        weekOffs: 0,
+        paidLeaves: Math.min(currentDay, monthlyPaidLeaves),
+        unpaidLeaves: Math.max(0, currentDay - monthlyPaidLeaves),
+      });
     }
 
-    const paidLeaves = leaves <= monthlyPaidLeaves ? leaves : monthlyPaidLeaves;
-    const unpaidLeaves =
-      leaves > monthlyPaidLeaves ? leaves - monthlyPaidLeaves : 0;
+    // Convert attendance records into a Map for O(1) lookups
+    const attendanceMap = new Map(
+      attendanceData.attendanceRecords.map((record) => [
+        new Date(record.from).toLocaleDateString("en-CA"),
+        record.status,
+      ])
+    );
+
+    // Initialize counters
+    let presents = 0,
+      leaves = 0,
+      weekOffs = 0;
+
+    // Iterate through the month's dates
+    for (let day = 1; day <= currentDay; day++) {
+      const dateStr = new Date(year, month - 1, day).toLocaleDateString(
+        "en-CA"
+      );
+
+      const status = attendanceMap.get(dateStr);
+
+      if (status === "Present") presents++;
+      else if (status === "Week Off") weekOffs++;
+      else leaves++;
+    }
+
+    // Calculate paid and unpaid leaves
+    const paidLeaves = Math.min(leaves, monthlyPaidLeaves);
+    const unpaidLeaves = Math.max(0, leaves - monthlyPaidLeaves);
 
     const result = {
       workingDays,

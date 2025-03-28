@@ -52,7 +52,7 @@
  *                   type: string
  *                   example: "Something went wrong"
  *     tags:
- *       - Job Applications
+ *       - Recruitment
  */
 
 import JobApplicationModel from "../../model/jobApplicationModel.mjs";

@@ -114,14 +114,28 @@
  */
 
 import UserModel from "../../model/userModel.mjs";
+import { cacheResponse, getCachedData } from "../../utils/cacheResponse.mjs";
 
 const verifyUser = async (req, res, next) => {
   try {
+    const cacheKey = `user:${req.user.username}`;
+
+    // Check if user data is cached
+    const cachedUser = await getCachedData(cacheKey);
+    if (cachedUser) {
+      return res.status(200).json({ user: cachedUser });
+    }
+
+    // Fetch user from MongoDB
     const user = await UserModel.findOne({
       username: req.user.username,
     }).select(
       "username rank first_name middle_name last_name employee_photo email modules dob blood_group official_email mobile communication_address_line_1 communication_address_line_2 communication_address_city communication_address_state communication_address_pincode permanent_address_line_1 permanent_address_line_2 permanent_address_city permanent_address_state permanent_address_pincode designation department joining_date bank_account_no bank_name ifsc_code aadhar_no aadhar_photo_front pan_no pan_photo pf_no esic_no backupCodes isTwoFactorEnabled qrCodeImage twoFactorSecret"
     );
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
 
     const userResponse = user.toObject();
 
@@ -139,13 +153,16 @@ const verifyUser = async (req, res, next) => {
       );
     }
 
-    const full_name = user.getFullName();
-    userResponse.full_name = full_name;
+    // Add full name using Mongoose method
+    userResponse.full_name = user.getFullName();
 
-    res.status(200).json({ user: { ...userResponse } });
+    // Cache the user response in Redis
+    await cacheResponse(cacheKey, userResponse);
+
+    res.status(200).json({ user: userResponse });
   } catch (err) {
     next(err);
-    res.status(403).json({ message: "Invalid token" });
+    res.status(500).json({ message: "Internal Server Error" });
   }
 };
 

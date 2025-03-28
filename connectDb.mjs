@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import dotenv from "dotenv";
+import dns from "dns";
 
 dotenv.config();
 
@@ -8,37 +9,99 @@ const MONGODB_URI =
     ? process.env.PROD_MONGODB_URI
     : process.env.DEV_MONGODB_URI;
 
+let isConnected = false;
+let reconnectTimer = null;
+
+// Check for actual internet connectivity
+const checkInternetConnection = () => {
+  return new Promise((resolve) => {
+    dns.lookup("google.com", (err) => {
+      resolve(!err);
+    });
+  });
+};
+
 const connectDB = async () => {
   try {
-    // Configure mongoose options
+    if (isConnected) return;
+
     mongoose.set("strictQuery", true);
     mongoose.set("bufferCommands", false);
 
-    // Connect to MongoDB
     await mongoose.connect(MONGODB_URI, {
       minPoolSize: 100,
       maxPoolSize: 500,
       serverSelectionTimeoutMS: 20000,
-      connectTimeoutMS: 20000,
+      connectTimeoutMS: 60000,
       socketTimeoutMS: 60000,
       retryWrites: true,
       family: 4,
+      compressors: "zstd",
     });
+
+    isConnected = true;
+
+    // Clear any existing reconnect timer if connection is successful
+    if (reconnectTimer) {
+      clearInterval(reconnectTimer);
+      reconnectTimer = null;
+    }
   } catch (error) {
     console.error("Error connecting to MongoDB Atlas:", error.message);
-    process.exit(1);
+    isConnected = false;
+    monitorInternetConnection();
   }
 };
 
-// Clean up MongoDB connection on app termination
+const monitorInternetConnection = async () => {
+  // Clear any existing timer to avoid multiple timers
+  if (reconnectTimer) {
+    clearInterval(reconnectTimer);
+  }
+
+  reconnectTimer = setInterval(async () => {
+    const isOnline = await checkInternetConnection();
+
+    if (isOnline && !isConnected) {
+      await connectDB();
+    }
+
+    // If we're connected, stop monitoring
+    if (isConnected) {
+      clearInterval(reconnectTimer);
+      reconnectTimer = null;
+    }
+  }, 5000);
+};
+
+// Handle MongoDB disconnection events
+mongoose.connection.on("disconnected", () => {
+  isConnected = false;
+  monitorInternetConnection();
+});
+
+// Handle MongoDB connection errors
+mongoose.connection.on("error", (err) => {
+  console.error("MongoDB connection error:", err.message);
+  isConnected = false;
+  monitorInternetConnection();
+});
+
 export const connectionCleanup = () => {
+  // Clear any reconnect timers on shutdown
+  if (reconnectTimer) {
+    clearInterval(reconnectTimer);
+  }
+
   process.on("SIGINT", async () => {
+    if (reconnectTimer) clearInterval(reconnectTimer);
     await mongoose.connection.close();
     console.log("Mongoose connection closed due to app termination (SIGINT)");
     process.exit(0);
   });
 
   process.on("SIGTERM", async () => {
+    if (reconnectTimer) clearInterval(reconnectTimer);
     await mongoose.connection.close();
     console.log("Mongoose connection closed due to app termination (SIGTERM)");
     process.exit(0);

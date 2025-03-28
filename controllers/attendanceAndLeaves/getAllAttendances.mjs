@@ -20,63 +20,57 @@ const getAllAttendances = async (req, res, next) => {
         ? currentDay
         : lastDay;
 
-    // Build date range (as strings) for the requested month
-    const dateRange = Array.from({ length: daysToInclude }, (_, i) =>
-      new Date(queryYear, queryMonth - 1, i + 1).toLocaleDateString("en-CA")
+    // Convert dateRange to a Set for O(1) lookup
+    const dateRangeSet = new Set(
+      Array.from({ length: daysToInclude }, (_, i) =>
+        new Date(queryYear, queryMonth - 1, i + 1).toLocaleDateString("en-CA")
+      )
     );
 
-    // Retrieve attendance records from the database
-    const attendances = await AttendanceModel.find({}).select(
+    // Retrieve only required fields from database
+    const attendances = await AttendanceModel.find(
+      {},
       "username attendanceRecords"
     );
 
     const result = [];
 
-    // Process each user's attendance
     for (const attendance of attendances) {
       let presents = 0;
       let leaves = 0;
       let halfDays = 0;
       let weekOffs = 0;
 
-      // Prepare a map for quick lookup of attendance records by date
-      const recordMap = new Map(
-        attendance.attendanceRecords.map((record) => [
-          new Date(record.from).toLocaleDateString("en-CA"), // Normalize the date key
-          record,
-        ])
-      );
-
-      // Evaluate each day in the range
-      for (const date of dateRange) {
-        const existingRecord = recordMap.get(date);
-
-        if (existingRecord) {
-          // Increment based on status
-          switch (existingRecord.status) {
-            case "Present":
-              presents++;
-              break;
-            case "Half Day":
-              halfDays++;
-              break;
-            case "Week Off":
-              weekOffs++;
-              break;
-            case "Leave":
-              leaves++;
-              break;
-            default:
-              leaves++; // Unknown status treated as leave
-              break;
-          }
-        } else {
-          // If no record found, treat as leave
-          leaves++;
+      // Use Object.create(null) instead of Map for faster lookups
+      const recordMap = Object.create(null);
+      for (const record of attendance.attendanceRecords) {
+        const dateKey = new Date(record.from).toLocaleDateString("en-CA");
+        if (dateRangeSet.has(dateKey)) {
+          recordMap[dateKey] = record.status;
         }
       }
 
-      // Push the compiled data for this user
+      // Iterate over dateRangeSet
+      for (const date of dateRangeSet) {
+        const status = recordMap[date] || "Leave"; // Default to Leave if not present
+
+        switch (status) {
+          case "Present":
+            presents++;
+            break;
+          case "Half Day":
+            halfDays++;
+            break;
+          case "Week Off":
+            weekOffs++;
+            break;
+          case "Leave":
+          default:
+            leaves++;
+            break;
+        }
+      }
+
       result.push({
         username: attendance.username,
         presents,
@@ -86,7 +80,6 @@ const getAllAttendances = async (req, res, next) => {
       });
     }
 
-    // Return the results
     return res.status(200).json(result);
   } catch (error) {
     next(error);

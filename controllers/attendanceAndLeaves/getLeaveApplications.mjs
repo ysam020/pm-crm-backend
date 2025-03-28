@@ -1,52 +1,56 @@
 import AttendanceModel from "../../model/attendanceModel.mjs";
 
 const getAllUsersLeaves = async (req, res, next) => {
-  const { month_year } = req.params;
-
   try {
+    const { month_year } = req.params;
     const [year, month] = month_year.split("-").map(Number);
 
-    // Start and end dates for the requested month
-    const startDate = new Date(year, month - 1, 1).toLocaleDateString("en-CA");
-    const endDate = new Date(
-      year,
-      month,
-      0,
-      23,
-      59,
-      59,
-      999
-    ).toLocaleDateString("en-CA");
+    if (!year || !month || month < 1 || month > 12) {
+      return res.status(400).json({ message: "Invalid month_year format" });
+    }
 
-    // Query to fetch users with status "Leave" in the given month/year
+    // Calculate start and end dates for the requested month
+    const startDate = new Date(year, month - 1, 1).toISOString().split("T")[0]; // YYYY-MM-DD
+    const endDate = new Date(year, month, 0).toISOString().split("T")[0]; // YYYY-MM-DD
+
+    // Query to fetch all users who have "Leave" status within the date range
     const attendances = await AttendanceModel.find({
-      attendanceRecords: {
-        $elemMatch: {
-          from: { $gte: startDate, $lte: endDate },
-          status: "Leave",
-        },
-      },
+      "attendanceRecords.from": { $gte: startDate, $lte: endDate },
+      "attendanceRecords.status": "Leave",
     }).select("username attendanceRecords");
 
-    // Flatten and restructure the result
-    const result = attendances.flatMap((user) =>
-      user.attendanceRecords
-        .filter(
-          (record) =>
-            record.status === "Leave" &&
-            record.from >= startDate &&
-            record.from <= endDate
-        )
-        .map((record) => ({
-          _id: record._id,
-          username: user.username,
-          from: record.from,
-          to: record.to,
-          status: record.approval_status,
-          reason: record.reason || "",
-          medical_certificate: record.medical_certificate || "",
-        }))
-    );
+    // Use a `Map` to group records by user
+    const leaveMap = new Map();
+
+    attendances.forEach((user) => {
+      const filteredRecords = user.attendanceRecords.filter(
+        (record) =>
+          record.status === "Leave" &&
+          record.from >= startDate &&
+          record.from <= endDate
+      );
+
+      if (filteredRecords.length > 0) {
+        if (!leaveMap.has(user.username)) {
+          leaveMap.set(user.username, []);
+        }
+
+        leaveMap.get(user.username).push(
+          ...filteredRecords.map((record) => ({
+            _id: record._id,
+            username: user.username,
+            from: record.from,
+            to: record.to,
+            status: record.approval_status,
+            reason: record.reason || "",
+            medical_certificate: record.medical_certificate || "",
+          }))
+        );
+      }
+    });
+
+    // Convert Map values to an array
+    const result = Array.from(leaveMap.values()).flat();
 
     res.status(200).json(result);
   } catch (error) {

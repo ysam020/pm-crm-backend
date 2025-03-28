@@ -54,7 +54,7 @@
  *                   type: string
  *                   example: "Something went wrong"
  *     tags:
- *       - Job Openings
+ *       - Recruitment
  */
 
 import JobOpeningsModel from "../../model/jobOpeneningModel.mjs";
