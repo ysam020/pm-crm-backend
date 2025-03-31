@@ -1,5 +1,6 @@
 import express from "express";
 import isAuthenticated from "../middlewares/isAuthenticated.mjs";
+import hasAccess from "../middlewares/hasAccess.mjs";
 import addAttendance from "../controllers/attendanceAndLeaves/addAttendance.mjs";
 import addLeave from "../controllers/attendanceAndLeaves/addLeave.mjs";
 import addWeekOff from "../controllers/attendanceAndLeaves/addWeekOff.mjs";
@@ -16,38 +17,83 @@ import updateWeekOffStatus from "../controllers/attendanceAndLeaves/updateWeekOf
 
 const router = express.Router();
 
-router.post("/api/add-attendance", isAuthenticated, addAttendance);
-router.post("/api/add-leave", isAuthenticated, addLeave);
-router.put("/api/add-week-off", isAuthenticated, addWeekOff);
-router.put("/api/attendance-correction", isAuthenticated, attendanceCorrection);
+router.post(
+  "/api/add-attendance",
+  isAuthenticated,
+  hasAccess("Attendance & Leaves"),
+  addAttendance
+);
+router.post(
+  "/api/add-leave",
+  isAuthenticated,
+  hasAccess("Attendance & Leaves"),
+  addLeave
+);
+router.put(
+  "/api/add-week-off",
+  isAuthenticated,
+  hasAccess("Attendance & Leaves"),
+  addWeekOff
+);
+router.put(
+  "/api/attendance-correction",
+  isAuthenticated,
+  hasAccess("Attendance & Leaves"),
+  attendanceCorrection
+);
 router.get(
   "/api/get-all-attendances/:year/:month",
   isAuthenticated,
+  hasAccess("Attendance & Leaves"),
   getAllAttendances
 );
-router.get("/api/get-week-offs/:month_year", isAuthenticated, getAllWeekOffs);
+router.get(
+  "/api/get-week-offs/:month_year",
+  isAuthenticated,
+  hasAccess("Attendance & Leaves"),
+  getAllWeekOffs
+);
 router.get(
   "/api/get-attendances/:month/:year",
   isAuthenticated,
+  hasAccess("Attendance & Leaves"),
   getAttendances
 );
 router.get(
   "/api/get-attendance-summary",
   isAuthenticated,
+  hasAccess("Attendance & Leaves"),
   getAttendanceSummary
 );
 router.get(
   "/api/get-leave-applications/:month_year",
   isAuthenticated,
+  hasAccess("Attendance & Leaves"),
   getLeaveApplications
 );
-router.get("/api/get-own-leaves/:month_year", isAuthenticated, getOwnLeaves);
+router.get(
+  "/api/get-own-leaves/:month_year",
+  isAuthenticated,
+  hasAccess("Attendance & Leaves"),
+  getOwnLeaves
+);
 router.get(
   "/api/get-own-week-offs/:month_year",
   isAuthenticated,
+  hasAccess("Attendance & Leaves"),
   getOwnWeekOffs
 );
-router.put("/api/update-leave-status", isAuthenticated, updateLeaveStatus);
-router.put("/api/update-week-off-status", isAuthenticated, updateWeekOffStatus);
+router.put(
+  "/api/update-leave-status",
+  isAuthenticated,
+  hasAccess("Attendance & Leaves"),
+  updateLeaveStatus
+);
+router.put(
+  "/api/update-week-off-status",
+  isAuthenticated,
+  hasAccess("Attendance & Leaves"),
+  updateWeekOffStatus
+);
 
 export default router;

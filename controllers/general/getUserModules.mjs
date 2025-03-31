@@ -80,13 +80,13 @@ import { cacheResponse, getCachedData } from "../../utils/cacheResponse.mjs";
 const getUserModules = async (req, res, next) => {
   try {
     const { username } = req.params;
-    const cacheKey = `user_modules:${username}`;
+    const cacheKey = `user:${username}`;
 
     // Check if data is in cache
     const cachedData = await getCachedData(cacheKey);
 
     if (cachedData) {
-      return res.status(200).json({ modules: cachedData });
+      return res.status(200).json({ modules: cachedData.modules });
     }
 
     // Find user and select only needed fields

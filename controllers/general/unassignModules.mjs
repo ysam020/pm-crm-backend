@@ -65,7 +65,6 @@
  */
 
 import UserModel from "../../model/userModel.mjs";
-import { cacheResponse } from "../../utils/cacheResponse.mjs";
 
 const unassignModules = async (req, res, next) => {
   try {
@@ -83,10 +82,6 @@ const unassignModules = async (req, res, next) => {
 
     user.modules = user.modules.filter((module) => !modules.includes(module));
     await user.save();
-
-    // Update Redis cache
-    const cacheKey = `user_modules:${username}`;
-    await cacheResponse(cacheKey, user.modules);
 
     const io = req.app.get("io");
     const userSockets = req.app.get("userSockets");
