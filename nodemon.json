@@ -2,6 +2,9 @@
   "env": {
     "NODE_ENV": "development"
   },
+  "events": {
+    "start": "clear"
+  },
   "watch": [
     "assets",
     "changeStreams",

@@ -30,7 +30,8 @@ async function runDatabaseBackup() {
     console.log("MongoDB dump successful");
 
     // Step 2: Restore dump to local MongoDB
-    const restoreCommand = `mongorestore --uri "${BACKUP_MONGODB_URI}" --drop "${DUMP_PATH}/pm-crm"`;
+    const restoreCommand = `mongorestore --uri "${BACKUP_MONGODB_URI}" --drop --nsInclude="pm-crm.*" "${DUMP_PATH}/pm-crm"`;
+
     console.log("Running mongorestore...");
     await runShellCommand(restoreCommand);
     console.log("MongoDB restore successful");

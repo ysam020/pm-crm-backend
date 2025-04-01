@@ -4,6 +4,7 @@ import dotenv from "dotenv";
 import { emailQueue } from "../config/queueConfig.mjs";
 import { logErrorTemplate } from "../templates/logErrorTemplate.mjs";
 import os from "os";
+import mongoose from "mongoose";
 
 dotenv.config();
 
@@ -46,7 +47,7 @@ const sendErrorEmail = async (
     {
       from: process.env.EMAIL_FROM, // Sender email address (configured in .env)
       to: process.env.DEV_EMAIL, // Recipient email address
-      subject: `[${systemInfo.environment.toUpperCase()}] Error in API -  ${
+      subject: `${systemInfo.environment.toUpperCase()} Error in API -  ${
         requestDetails?.url || ""
       }`,
       html: html, // The email HTML template content
@@ -61,33 +62,65 @@ const sendErrorEmail = async (
   );
 };
 
-// Define the logger
+// Create Winston MongoDB transport
+const createMongoTransport = () => {
+  return new winston.transports.MongoDB({
+    level: "error",
+    db: mongoose.connection.getClient(),
+    collection: "error_logs",
+    tryReconnect: true,
+    capped: true,
+    cappedMax: 10000,
+    decolorize: true,
+    handleExceptions: true,
+    metaKey: "metadata",
+    storeHost: true,
+  });
+};
+
+// Flag to track if MongoDB transport has been added
+let mongoTransportAdded = false;
+
+// Define the logger with MongoDB transport (but no console transport)
 const logger = winston.createLogger({
   level: "info",
   format: winston.format.combine(
     winston.format.timestamp(),
     winston.format.json()
   ),
-  transports: [
-    new winston.transports.MongoDB({
-      level: "error",
-      db: process.env.DEV_MONGODB_URI,
-      collection: "error_logs",
-      tryReconnect: true,
-      capped: true,
-      cappedMax: 10000,
-    }),
-    new winston.transports.Console({
-      format: winston.format.combine(
-        winston.format.colorize(),
-        winston.format.printf(({ level, message, timestamp, metadata }) => {
-          return `${timestamp} [${level.toUpperCase()}]: ${message} \nStack: ${
-            metadata?.stack || "N/A"
-          }\n`;
-        })
-      ),
-    }),
-  ],
+  transports: [], // No default transports - we'll add MongoDB later
+  exitOnError: false,
+});
+
+// Add MongoDB transport only when database is connected
+mongoose.connection.once("open", async () => {
+  if (!mongoTransportAdded) {
+    try {
+      // Ensure the capped collection exists
+      const db = mongoose.connection.db;
+
+      // Check if collection exists
+      const collections = await db
+        .listCollections({ name: "error_logs" })
+        .toArray();
+
+      if (collections.length === 0) {
+        // Create capped collection if it doesn't exist
+        await db.createCollection("error_logs", {
+          capped: true,
+          size: 5242880, // 5MB
+          max: 10000,
+        });
+      }
+
+      // Now add the transport
+      const mongoTransport = createMongoTransport();
+      logger.add(mongoTransport);
+      mongoTransportAdded = true;
+    } catch (err) {
+      console.error("Failed to set up MongoDB logging:", err);
+    }
+  }
 });
 
 // Helper function to log errors
@@ -126,8 +159,25 @@ export const logError = (
     },
   };
 
+  // Log to MongoDB via winston (without console output)
   logger.error(logEntry);
+
+  // Create concise format for console.error
+  const methodUrl =
+    requestDetails?.method && requestDetails?.url
+      ? `[${requestDetails.method}] ${requestDetails.url}`
+      : "";
+
+  // Get the first line of the stack trace
+  const stackFirstLine = error.stack
+    ? error.stack.split("\n")[1].trim().split(" ").pop()
+    : "";
+
+  // Log to console.error with our concise format
+  console.error(
+    `Error in ${methodUrl}\nDescription: ${error.message}\nStack Trace: (${stackFirstLine})\n\n`
+  );
+
+  // Also send email notification
   sendErrorEmail(error, description, requestDetails, systemInfo);
 };
-
-export default logger;
