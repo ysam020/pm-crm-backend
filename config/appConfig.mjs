@@ -6,7 +6,8 @@ import compression from "compression";
 import helmet from "helmet";
 import swaggerUi from "swagger-ui-express";
 import swaggerSpec from "./swaggerConfig.js";
-import { createServer } from "http";
+import { createServer as createHttpServer } from "http";
+import { createServer as createHttpsServer } from "https";
 import { Server } from "socket.io";
 import passport from "passport";
 import MongoStore from "connect-mongo";
@@ -15,6 +16,13 @@ import mongoSanitize from "express-mongo-sanitize";
 import "../config/passport.mjs";
 import "../config/passportWebAuthn.mjs";
 import dotenv from "dotenv";
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
+
+// Get the directory name of the current module
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 dotenv.config();
 
@@ -46,9 +54,11 @@ const configureApp = () => {
   // CORS settings
   const allowedOrigins = [
     "http://localhost:3000",
-    "http://localhost:3001",
-    "https://sameer-yadav.site",
-    "http://localhost:53866",
+    "https://localhost:3000",
+    "http://192.168.1.107:3000",
+    "https://192.168.1.107:3000",
+    "http://172.20.10.10:3000",
+    "https://172.20.10.10:3000",
   ];
 
   app.use(
@@ -77,7 +87,7 @@ const configureApp = () => {
       cookie: {
         maxAge: 60 * 60 * 1000, // 1 hour
         httpOnly: true,
-        secure: false,
+        secure: process.env.NODE_ENV === "production", // Set to true in production
       },
     })
   );
@@ -98,7 +108,28 @@ const configureApp = () => {
   app.use(extendSession);
   app.use(mongoSanitize());
 
-  const server = createServer(app);
+  // Setup HTTPS options
+  let server;
+  let useHttps = false;
+
+  try {
+    const httpsOptions = {
+      key: fs.readFileSync(
+        path.resolve(__dirname, "../../certificates/key.pem")
+      ),
+      cert: fs.readFileSync(
+        path.resolve(__dirname, "../../certificates/cert.pem")
+      ),
+    };
+    server = createHttpsServer(httpsOptions, app);
+    useHttps = true;
+  } catch (error) {
+    console.warn(
+      "Failed to configure HTTPS server, falling back to HTTP:",
+      error.message
+    );
+    server = createHttpServer(app);
+  }
 
   const io = new Server(server, {
     cors: {
@@ -140,6 +171,7 @@ const configureApp = () => {
   // Make io instance available throughout the app
   app.set("io", io);
   app.set("userSockets", userSockets);
+  app.set("useHttps", useHttps);
 
   // Swagger documentation
   app.use(

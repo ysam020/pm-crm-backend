@@ -32,7 +32,6 @@ import resignationRoutes from "./routes/resignationRoutes.mjs";
 
 const { app, server } = configureApp();
 
-// Wrap the main application logic in an async function
 async function startApplication() {
   try {
     await connectDB().then(async () => {
@@ -82,7 +81,7 @@ async function startApplication() {
         console.error("Error starting worker threads:", workerError);
       }
 
-      // Set up routes
+      // Routes
       app.use(generalRoutes);
       app.use(analyticsRoute);
       app.use(authRoutes);
@@ -98,7 +97,7 @@ async function startApplication() {
       app.use(kycRoutes);
       app.use(resignationRoutes);
 
-      // Error handling middleware (should be after all routes)
+      // Error handling middleware
       app.use((err, req, res, next) => {
         logError(err, `Error in ${req.method} ${req.url}`, req);
 
@@ -110,8 +109,10 @@ async function startApplication() {
       });
 
       // Start the server
-      server.listen(9002, () => {
-        console.log(`BE started at port 9002`);
+      const PORT = process.env.PORT || 9002;
+      server.listen(PORT, () => {
+        const protocol = app.get("useHttps") ? "HTTPS" : "HTTP";
+        console.log(`BE started at port ${PORT} using ${protocol}`);
       });
 
       // Schedule ESLint to run every day at 8 AM
